@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($content = Get-Content \"d:\\\\oqllos\\\\gene-ius.html\" -Raw; $lines = $content -split \"`n\"; Write-Host \"Total lines: $\\($lines.Count\\)\")",
+      "PowerShell($env:GCM_INTERACTIVE = \"never\"; git -c credential.interactive=never ls-remote https://github.com 2>&1 | Select-Object -First 5)"
+    ]
+  }
+}

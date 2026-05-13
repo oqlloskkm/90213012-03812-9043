@@ -1,0 +1,5483 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CheBio</title>
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --bg2: #e8edf2;
+      --accent: #1565c0;
+      --accent2: #6a1b9a;
+      --text: #1a2a3a;
+      --text-dim: #607080;
+      --card-bg: rgba(255, 255, 255, 0.92);
+      --border: rgba(21, 101, 192, 0.18);
+      --A: #1565c0;
+      --T: #c62828;
+      --C: #2e7d32;
+      --G: #e65100;
+      --hp-high: #2e7d32;
+      --hp-mid: #f9a825;
+      --hp-low: #c62828;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(21, 101, 192, .07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(21, 101, 192, .07) 1px, transparent 1px),
+        linear-gradient(rgba(21, 101, 192, .025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(21, 101, 192, .025) 1px, transparent 1px);
+      background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+    }
+
+    #lab-deco {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: visible;
+    }
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: none;
+      z-index: 1;
+    }
+
+    .scene.active {
+      display: flex;
+    }
+
+    /* ===== MAIN MENU ===== */
+    #scene-main {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 36px;
+    }
+
+    .main-title {
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .main-title h1 {
+      font-size: 3.4rem;
+      font-weight: 900;
+      letter-spacing: .06em;
+      background: linear-gradient(135deg, #1565c0, #6a1b9a, #c62828);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .main-title p {
+      color: var(--text-dim);
+      font-size: .95rem;
+      margin-top: 8px;
+      letter-spacing: .2em;
+    }
+
+    .game-grid {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 900px;
+    }
+
+    .game-card {
+      width: 210px;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 18px;
+      cursor: pointer;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+      position: relative;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .08);
+    }
+
+    .game-card:hover:not(.locked) {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 32px rgba(21, 101, 192, .2);
+      border-color: var(--accent);
+    }
+
+    .game-card.locked {
+      cursor: default;
+      opacity: .5;
+    }
+
+    .card-icon {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+    }
+
+    .card-name {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .card-desc {
+      font-size: .78rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    .card-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: .62rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 700;
+    }
+
+    .badge-ready {
+      background: #1565c0;
+      color: #fff;
+    }
+
+    .badge-soon {
+      background: #ccc;
+      color: #666;
+    }
+
+    /* ===== SELECT SCENE ===== */
+    #scene-select {
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 32px 20px;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .scene-title {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .tab-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      padding: 7px 18px;
+      border: 1.5px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-dim);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .88rem;
+      transition: .15s;
+      font-weight: 600;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .tab-panel {
+      display: none;
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .song-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .song-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: .2s;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, .06);
+    }
+
+    .song-card:hover {
+      border-color: var(--accent);
+      background: rgba(21, 101, 192, .05);
+    }
+
+    .song-card.selected {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 2px var(--accent2);
+    }
+
+    .song-diff {
+      color: #e65100;
+      font-size: .82rem;
+      letter-spacing: -1px;
+    }
+
+    .song-info h3 {
+      font-size: .95rem;
+      font-weight: 700;
+    }
+
+    .song-info p {
+      font-size: .78rem;
+      color: var(--text-dim);
+    }
+
+    .song-num {
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--text-dim);
+      min-width: 24px;
+      text-align: right;
+    }
+
+    .settings-section {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, .06);
+    }
+
+    .settings-section h3 {
+      margin-bottom: 12px;
+      font-size: .95rem;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .speed-btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .speed-btn {
+      padding: 5px 13px;
+      border: 1.5px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .88rem;
+      transition: .15s;
+    }
+
+    .speed-btn.active {
+      background: var(--accent2);
+      color: #fff;
+      border-color: var(--accent2);
+    }
+
+    .skin-btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .skin-btn {
+      padding: 7px 14px;
+      border: 2.5px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .82rem;
+      font-weight: 700;
+      transition: .15s;
+      color: #fff;
+    }
+
+    .skin-btn.active {
+      border-color: #111 !important;
+    }
+
+    .preset-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .preset-btn {
+      padding: 7px 18px;
+      border: 1.5px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .88rem;
+      font-weight: 600;
+      transition: .15s;
+    }
+
+    .preset-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .key-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: .85rem;
+    }
+
+    .key-table th {
+      background: rgba(21, 101, 192, .1);
+      padding: 6px 10px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .key-table td {
+      padding: 6px 10px;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+
+    .key-cap {
+      display: inline-block;
+      background: #e0e8f0;
+      border: 1px solid #bbb;
+      border-bottom: 3px solid #999;
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-weight: 900;
+      font-family: monospace;
+      font-size: .95rem;
+    }
+
+    .start-btn {
+      margin-top: 16px;
+      padding: 13px 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      letter-spacing: .05em;
+      transition: opacity .2s;
+      box-shadow: 0 4px 16px rgba(21, 101, 192, .28);
+    }
+
+    .start-btn:hover {
+      opacity: .88;
+    }
+
+    .back-btn {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      color: var(--text-dim);
+      padding: 7px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .88rem;
+      transition: .15s;
+    }
+
+    .back-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    /* ===== GAME SCENE ===== */
+    #scene-game {
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    #game-left {
+      width: 96px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 10px;
+      gap: 10px;
+      border-right: 1px solid var(--border);
+      background: rgba(255, 255, 255, .75);
+    }
+
+    #game-center {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #game-right {
+      width: 148px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 10px;
+      gap: 8px;
+      border-left: 1px solid var(--border);
+      background: rgba(255, 255, 255, .75);
+    }
+
+    .hp-label {
+      font-size: .7rem;
+      color: var(--text-dim);
+      letter-spacing: .1em;
+      font-weight: 700;
+    }
+
+    #hp-bar-wrap {
+      width: 22px;
+      flex: 1;
+      background: rgba(0, 0, 0, .08);
+      border-radius: 11px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--border);
+    }
+
+    #hp-bar {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      background: var(--hp-high);
+      transition: height .3s, background .3s;
+      border-radius: 11px;
+    }
+
+    #hp-val {
+      font-size: .78rem;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .label-sm {
+      font-size: .68rem;
+      color: var(--text-dim);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    #score-val {
+      font-size: 1.45rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+    }
+
+    #combo-val {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--accent2);
+    }
+
+    .combo-label {
+      font-size: .62rem;
+      color: var(--text-dim);
+    }
+
+    #max-combo-val {
+      font-size: .82rem;
+      color: var(--text-dim);
+      font-weight: 700;
+    }
+
+    #judge-counts {
+      text-align: center;
+      font-size: .7rem;
+      line-height: 1.9;
+    }
+
+    #dna-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Note rungs */
+    .note-rung {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 52px;
+      display: flex;
+      border-radius: 10px;
+      overflow: hidden;
+      z-index: 10;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, .22);
+      border: 2px solid rgba(255, 255, 255, .55);
+    }
+
+    .note-half {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .note-half.left {
+      border-right: 2px solid rgba(255, 255, 255, .35);
+    }
+
+    .note-half.right {
+      opacity: .75;
+    }
+
+    /* Judge line */
+    #judge-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: rgba(21, 101, 192, .55);
+      z-index: 5;
+    }
+
+    #judge-line-marker {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 320px;
+      height: 4px;
+      background: #1565c0;
+      border-radius: 2px;
+    }
+
+    /* Key row */
+    #key-row {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 68px;
+      z-index: 20;
+      background: rgba(255, 255, 255, .88);
+      border-top: 1.5px solid var(--border);
+      gap: 10px;
+      padding: 0 16px;
+    }
+
+    .key-ind-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .key-ind {
+      width: 52px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      font-weight: 900;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      background: rgba(0, 0, 0, .07);
+      transition: background .07s, transform .07s;
+      font-family: monospace;
+    }
+
+    .key-ind.pressed {
+      transform: translateY(2px);
+      background: rgba(0, 0, 0, .18);
+    }
+
+    .key-label-small {
+      font-size: .62rem;
+      font-weight: 700;
+      color: var(--text-dim);
+    }
+
+    /* Top info */
+    #game-top-info {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      font-size: .78rem;
+      color: var(--text-dim);
+      z-index: 20;
+      background: rgba(255, 255, 255, .82);
+      padding: 4px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    #song-title-disp {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    #pause-btn {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      color: var(--text-dim);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .78rem;
+      z-index: 25;
+      transition: .15s;
+    }
+
+    #pause-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    /* Judge text */
+    #judge-text {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 38%;
+      font-size: 2rem;
+      font-weight: 900;
+      pointer-events: none;
+      z-index: 30;
+      opacity: 0;
+      white-space: nowrap;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, .12);
+    }
+
+    /* Countdown */
+    #countdown-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(240, 244, 248, .88);
+      z-index: 40;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #countdown-num {
+      font-size: 9rem;
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #countdown-sub {
+      font-size: 1rem;
+      color: var(--text-dim);
+      margin-top: 8px;
+    }
+
+    /* Pause overlay */
+    #pause-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(240, 244, 248, .88);
+      z-index: 50;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    #pause-overlay h2 {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    .pause-btn-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .po-btn {
+      padding: 10px 24px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      transition: .15s;
+    }
+
+    .po-btn:hover {
+      border-color: var(--accent);
+    }
+
+    /* ===== RESULT ===== */
+    #scene-result {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    #result-rank {
+      font-size: 6rem;
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(135deg, #1565c0, #6a1b9a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #result-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      padding: 28px 44px;
+      min-width: 340px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, .09);
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 36px;
+      margin-bottom: 9px;
+    }
+
+    .result-label {
+      color: var(--text-dim);
+      font-size: .83rem;
+    }
+
+    .result-val {
+      font-weight: 700;
+      font-size: .92rem;
+      color: var(--text);
+    }
+
+    #new-record-badge {
+      background: linear-gradient(135deg, #ffd700, #ff5722);
+      color: #000;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-weight: 900;
+      font-size: .78rem;
+      display: none;
+    }
+
+    .result-btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .result-btn {
+      padding: 10px 22px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 700;
+      transition: .2s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .07);
+    }
+
+    .result-btn.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      color: #fff;
+    }
+
+    .result-btn:hover {
+      opacity: .82;
+    }
+
+    /* ===== GAME OVER ===== */
+    #scene-gameover {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    #go-title {
+      font-size: 3.5rem;
+      font-weight: 900;
+      color: var(--T);
+    }
+
+    .go-btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    /* Animations */
+    .fade-in {
+      animation: fadeIn .4s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes judgeAnim {
+      0% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1.4);
+      }
+
+      60% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateX(-50%) scale(.85);
+      }
+    }
+
+    @keyframes countPop {
+      0% {
+        transform: scale(1.6);
+        opacity: 0;
+      }
+
+      20% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      80% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(.75);
+        opacity: 0;
+      }
+    }
+
+    @keyframes startPop {
+      0% {
+        transform: scale(.5);
+        opacity: 0;
+      }
+
+      50% {
+        transform: scale(1.08);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* ============================================================
+   PH GAME
+   ============================================================ */
+    #scene-ph-select {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+    }
+
+    .ph-select-title {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    .ph-select-title small {
+      display: block;
+      font-size: .85rem;
+      font-weight: 400;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .ph-diff-grid {
+      display: flex;
+      gap: 16px;
+    }
+
+    .ph-diff-card {
+      width: 180px;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 16px;
+      cursor: pointer;
+      text-align: center;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, .07);
+    }
+
+    .ph-diff-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 28px rgba(21, 101, 192, .2);
+      border-color: var(--accent);
+    }
+
+    .ph-diff-icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+
+    .ph-diff-name {
+      font-size: 1.05rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .ph-diff-desc {
+      font-size: .75rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    .ph-best-row {
+      font-size: .8rem;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    .ph-best-row span {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* PH GAME SCENE */
+    #scene-ph-game {
+      flex-direction: column;
+      background: var(--bg);
+    }
+
+    #ph-hud {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      background: rgba(255, 255, 255, .88);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .ph-hud-sep {
+      flex: 1;
+    }
+
+    .ph-hud-label {
+      font-size: .7rem;
+      color: var(--text-dim);
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    #ph-score {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    #ph-time {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+
+    #ph-hp-val {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    #ph-hp-bar-wrap {
+      width: 140px;
+      height: 12px;
+      background: rgba(0, 0, 0, .1);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    #ph-hp-bar {
+      height: 100%;
+      background: #2e7d32;
+      border-radius: 6px;
+      transition: width .3s, background .3s;
+    }
+
+    .ph-hud-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    #ph-pause-btn2 {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      color: var(--text-dim);
+      padding: 4px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .8rem;
+      transition: .15s;
+    }
+
+    #ph-pause-btn2:hover {
+      border-color: var(--accent);
+    }
+
+    /* Belt area */
+    #ph-belt-area {
+      display: flex;
+      height: 120px;
+      flex-shrink: 0;
+      border-bottom: 2px solid var(--border);
+      background: rgba(255, 255, 255, .5);
+    }
+
+    #ph-left-belt-wrap,
+    #ph-right-belt-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .ph-belt-label-top {
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      letter-spacing: .08em;
+    }
+
+    #ph-left-belt-wrap .ph-belt-label-top {
+      color: #00796b;
+      background: rgba(0, 121, 107, .06);
+    }
+
+    #ph-right-belt-wrap .ph-belt-label-top {
+      color: #00796b;
+      background: rgba(0, 121, 107, .06);
+      text-align: right;
+    }
+
+    .ph-belt {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #ph-left-belt {
+      background: repeating-linear-gradient(90deg, #00796b 0 22px, #004d40 22px 44px);
+      animation: phBeltRight var(--ph-belt-dur, 0.38s) linear infinite;
+    }
+
+    #ph-right-belt {
+      background: repeating-linear-gradient(90deg, #00838f 0 22px, #006064 22px 44px);
+      animation: phBeltLeft var(--ph-belt-dur, 0.38s) linear infinite;
+    }
+
+    @keyframes phBeltRight {
+      from {
+        background-position: 0 0;
+      }
+
+      to {
+        background-position: 44px 0;
+      }
+    }
+
+    @keyframes phBeltLeft {
+      from {
+        background-position: 0 0;
+      }
+
+      to {
+        background-position: -44px 0;
+      }
+    }
+
+    .ph-belt-key-hint {
+      font-size: .72rem;
+      font-weight: 700;
+      padding: 2px 10px;
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, .7);
+    }
+
+    #ph-left-belt-wrap .ph-belt-key-hint {
+      color: #00796b;
+    }
+
+    #ph-right-belt-wrap .ph-belt-key-hint {
+      text-align: right;
+      color: #00796b;
+    }
+
+    /* Gas bar */
+    #ph-gas-bar {
+      flex-shrink: 0;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      font-size: .78rem;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      transition: background .6s ease, color .6s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ph-gas-neutral {
+      background: rgba(245, 245, 245, .92);
+      color: #607080;
+    }
+
+    .ph-gas-weak-acid {
+      background: rgba(255, 243, 224, .95);
+      color: #bf360c;
+    }
+
+    .ph-gas-strong-acid {
+      background: rgba(255, 235, 230, .95);
+      color: #b71c1c;
+    }
+
+    .ph-gas-weak-base {
+      background: rgba(232, 245, 253, .95);
+      color: #1565c0;
+    }
+
+    #ph-gas-icon {
+      font-size: 1rem;
+    }
+
+    #ph-gas-formula {
+      font-weight: 900;
+      font-size: .88rem;
+      letter-spacing: .02em;
+    }
+
+    #ph-gas-effect {
+      opacity: .8;
+      font-size: .75rem;
+    }
+
+    #ph-gas-duration {
+      height: 5px;
+      width: 100px;
+      background: rgba(0, 0, 0, .12);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    #ph-gas-dur-fill {
+      height: 100%;
+      background: currentColor;
+      opacity: .6;
+      border-radius: 3px;
+      transition: width .15s linear;
+    }
+
+    @keyframes gasSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-100%);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .ph-gas-change-banner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: .82rem;
+      letter-spacing: .05em;
+      background: inherit;
+      animation: gasSlideIn .3s ease forwards, gasSlideIn .3s 1.5s ease reverse forwards;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* Scientist */
+    #ph-scientist-wrap {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      z-index: 55;
+      display: none;
+      flex-direction: row;
+      align-items: flex-end;
+      gap: 0;
+      transform: translateX(-105%);
+      transition: transform .55s cubic-bezier(.34, 1.46, .64, 1);
+    }
+
+    #ph-scientist-wrap.sci-visible {
+      transform: translateX(0);
+    }
+
+    #ph-sci-char {
+      flex-shrink: 0;
+      pointer-events: none;
+    }
+
+    #ph-sci-bubble {
+      background: #fff;
+      border: 2px solid #1565c0;
+      border-radius: 16px 16px 16px 0;
+      padding: 12px 14px;
+      min-width: 210px;
+      max-width: 270px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, .15);
+      margin-bottom: 28px;
+      margin-left: 4px;
+    }
+
+    #ph-sci-text {
+      font-size: .82rem;
+      line-height: 1.55;
+      color: var(--text);
+      margin-bottom: 8px;
+      min-height: 36px;
+    }
+
+    #ph-sci-timer-bar {
+      height: 4px;
+      background: rgba(21, 101, 192, .15);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    #ph-sci-timer-fill {
+      height: 100%;
+      background: #1565c0;
+      border-radius: 2px;
+    }
+
+    #ph-sci-btns {
+      display: flex;
+      gap: 7px;
+    }
+
+    .ph-sci-btn {
+      flex: 1;
+      padding: 6px 0;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .8rem;
+      font-weight: 700;
+      transition: opacity .15s;
+    }
+
+    .ph-sci-btn:hover {
+      opacity: .82;
+    }
+
+    .ph-sci-accept {
+      background: #2e7d32;
+      color: #fff;
+    }
+
+    .ph-sci-reject {
+      background: #c62828;
+      color: #fff;
+    }
+
+    @keyframes sciLaugh {
+
+      0%,
+      100% {
+        transform: rotate(0);
+      }
+
+      25% {
+        transform: rotate(-6deg) scale(1.06);
+      }
+
+      75% {
+        transform: rotate(6deg) scale(1.06);
+      }
+    }
+
+    /* Pour zone center */
+    #ph-pour-zone {
+      width: 170px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border-left: 1px dashed rgba(0, 0, 0, .12);
+      border-right: 1px dashed rgba(0, 0, 0, .12);
+      background: rgba(255, 255, 255, .9);
+      position: relative;
+    }
+
+    #ph-pour-indicator {
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .ph-pour-arrow {
+      font-size: 1.4rem;
+      color: var(--accent);
+      animation: pourArrow 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes pourArrow {
+      from {
+        transform: translateY(-4px);
+      }
+
+      to {
+        transform: translateY(4px);
+      }
+    }
+
+    /* Items on belt */
+    .ph-item {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 108px;
+      border-radius: 10px;
+      padding: 6px 8px;
+      cursor: pointer;
+      z-index: 10;
+      color: #fff;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, .25);
+      border: 2px solid rgba(255, 255, 255, .35);
+      transition: box-shadow .2s, transform .1s;
+      user-select: none;
+    }
+
+    .ph-item:hover {
+      transform: translateY(calc(-50% - 3px));
+    }
+
+    .ph-item-formula {
+      font-size: .95rem;
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+
+    .ph-item-name {
+      font-size: .62rem;
+      opacity: .85;
+      margin-top: 1px;
+    }
+
+    .ph-item-strength {
+      font-size: .75rem;
+      margin-top: 2px;
+      letter-spacing: -1px;
+    }
+
+    .ph-item.ph-in-zone {
+      box-shadow: 0 0 0 3px #ffd700, 0 4px 16px rgba(0, 0, 0, .3);
+      animation: itemPulse .55s ease-in-out infinite alternate;
+    }
+
+    @keyframes itemPulse {
+      from {
+        transform: translateY(-50%);
+      }
+
+      to {
+        transform: translateY(calc(-50% - 4px));
+      }
+    }
+
+    /* Main area (beaker) */
+    #ph-main-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      padding: 16px;
+      position: relative;
+    }
+
+    #ph-beaker-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    #ph-beaker-opening {
+      width: 190px;
+      height: 22px;
+      border: 3.5px solid rgba(80, 140, 220, .65);
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      background: rgba(180, 220, 255, .12);
+    }
+
+    #ph-beaker-body {
+      width: 168px;
+      height: 210px;
+      border: 3.5px solid rgba(80, 140, 220, .65);
+      border-top: none;
+      border-radius: 0 0 22px 22px;
+      position: relative;
+      overflow: hidden;
+      background: rgba(180, 220, 255, .1);
+    }
+
+    #ph-liquid {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 82%;
+      background: #66bb6a;
+      transition: background .7s ease;
+    }
+
+    #ph-ph-display {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: rgba(255, 255, 255, .95);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, .35);
+      pointer-events: none;
+      z-index: 5;
+      letter-spacing: .02em;
+    }
+
+    #ph-ph-label {
+      position: absolute;
+      top: calc(50% + 32px);
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: .72rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, .75);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+      letter-spacing: .15em;
+    }
+
+    .ph-glass-shine {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      width: 18px;
+      bottom: 8px;
+      background: linear-gradient(to right, rgba(255, 255, 255, .35), transparent);
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    #ph-judge-text2 {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.8rem;
+      font-weight: 900;
+      pointer-events: none;
+      opacity: 0;
+      white-space: nowrap;
+      z-index: 20;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+    }
+
+    @keyframes phJudgeAnim {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.3);
+      }
+
+      60% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -60%) scale(.9);
+      }
+    }
+
+    /* Info panel next to beaker */
+    #ph-info-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 180px;
+    }
+
+    .ph-info-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: .82rem;
+    }
+
+    .ph-info-card-title {
+      font-size: .68rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: .08em;
+      margin-bottom: 5px;
+    }
+
+    #ph-consecutive-bar {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .ph-consec-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, .1);
+      border: 1.5px solid var(--border);
+      transition: .2s;
+    }
+
+    .ph-consec-dot.active-acid {
+      background: #c62828;
+    }
+
+    .ph-consec-dot.active-base {
+      background: #1565c0;
+    }
+
+    /* pH scale bar */
+    #ph-scale-area {
+      flex-shrink: 0;
+      padding: 10px 24px 14px;
+      background: rgba(255, 255, 255, .75);
+      border-top: 1px solid var(--border);
+    }
+
+    #ph-scale-track {
+      width: 100%;
+      height: 16px;
+      border-radius: 8px;
+      background: linear-gradient(to right,
+          #b71c1c 0%, #e53935 14%, #ff7043 28%, #ffa726 42%,
+          #66bb6a 50%, #42a5f5 58%, #1e88e5 72%, #1565c0 86%, #4a148c 100%);
+      position: relative;
+      margin: 6px 0;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, .12);
+    }
+
+    #ph-scale-dot {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 22px;
+      height: 22px;
+      background: #fff;
+      border: 3px solid #333;
+      border-radius: 50%;
+      transition: left .4s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+    }
+
+    .ph-scale-legends {
+      display: flex;
+      justify-content: space-between;
+      font-size: .7rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .ph-scale-legend-acid {
+      color: #c62828;
+    }
+
+    .ph-scale-legend-neutral {
+      color: #2e7d32;
+    }
+
+    .ph-scale-legend-base {
+      color: #1565c0;
+    }
+
+    /* Particles */
+    .ph-particle {
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    @keyframes phParticleUp {
+      0% {
+        transform: translateX(var(--dx)) translateY(0) scale(1);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateX(var(--dx)) translateY(-80px) scale(0);
+        opacity: 0;
+      }
+    }
+
+    /* Overflow flash */
+    @keyframes phOverflowFlash {
+
+      0%,
+      100% {
+        box-shadow: none;
+      }
+
+      50% {
+        box-shadow: 0 0 0 4px #f44336 inset;
+      }
+    }
+
+    .ph-overflow-anim {
+      animation: phOverflowFlash .5s ease;
+    }
+
+    /* PH Pause/Tutorial overlays */
+    #ph-pause-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(240, 244, 248, .88);
+      z-index: 50;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    #ph-pause-overlay h2 {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    #ph-tutorial-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(240, 244, 248, .92);
+      z-index: 60;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ph-tutorial-box {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 44px;
+      max-width: 520px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .1);
+    }
+
+    .ph-tutorial-box h2 {
+      font-size: 1.5rem;
+      font-weight: 900;
+      margin-bottom: 18px;
+      color: var(--accent);
+    }
+
+    .ph-tut-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+      font-size: .88rem;
+      line-height: 1.6;
+    }
+
+    .ph-tut-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+
+    .ph-ph-legend {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .ph-ph-legend-item {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .ph-tut-keys {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .ph-tut-key-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .85rem;
+    }
+
+    .ph-tut-key-item .key-cap {
+      font-size: 1rem;
+    }
+
+    /* PH RESULT SCENE */
+    #scene-ph-result {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    #ph-result-rank {
+      font-size: 6rem;
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(135deg, #e65100, #c62828);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #ph-result-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      padding: 28px 44px;
+      min-width: 340px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, .09);
+    }
+
+    /* ============================================================
+   CELL ORGANELLE DEFENSE GAME
+   ============================================================ */
+
+    /* ---- Guide Screen ---- */
+    #scene-cell-guide {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(8, 18, 40, .97);
+      padding: 24px 16px;
+      overflow-y: auto;
+    }
+
+    .cell-guide-box {
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 16px;
+      padding: 24px 28px;
+      max-width: 680px;
+      width: 100%;
+      color: #e0e8ff;
+    }
+
+    .cell-guide-box h2 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-bottom: 18px;
+      text-align: center;
+      color: #90caf9;
+      letter-spacing: .04em;
+    }
+
+    .cell-guide-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .cell-guide-col {
+      background: rgba(255, 255, 255, .05);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .cell-guide-col h3 {
+      font-size: .82rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      letter-spacing: .05em;
+    }
+
+    .cell-guide-col.hydro h3 {
+      color: #42a5f5;
+    }
+
+    .cell-guide-col.philic h3 {
+      color: #66bb6a;
+    }
+
+    .cell-guide-col ul {
+      list-style: none;
+      font-size: .78rem;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, .8);
+    }
+
+    .cell-guide-harmful {
+      border: 2px solid #ef5350;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+
+    .cell-guide-harmful h3 {
+      font-size: .82rem;
+      font-weight: 800;
+      color: #ef5350;
+      margin-bottom: 8px;
+      letter-spacing: .05em;
+    }
+
+    .cell-guide-harmful ul {
+      list-style: none;
+      font-size: .78rem;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, .8);
+    }
+
+    .cell-guide-sniper-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .76rem;
+      margin-top: 10px;
+    }
+
+    .cell-guide-sniper-table th {
+      background: rgba(255, 255, 255, .08);
+      padding: 5px 8px;
+      text-align: center;
+      font-weight: 700;
+      color: #90caf9;
+    }
+
+    .cell-guide-sniper-table td {
+      padding: 4px 8px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+      color: rgba(255, 255, 255, .82);
+    }
+
+    .cell-guide-sniper-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .cell-guide-btns {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .cell-guide-btn-start {
+      padding: 11px 32px;
+      background: linear-gradient(135deg, #1565c0, #6a1b9a);
+      color: #fff;
+      border: none;
+      border-radius: 30px;
+      font-size: .95rem;
+      font-weight: 800;
+      cursor: pointer;
+      letter-spacing: .03em;
+    }
+
+    .cell-guide-btn-start:hover {
+      opacity: .88;
+    }
+
+    .cell-guide-btn-skip {
+      padding: 11px 22px;
+      background: rgba(255, 255, 255, .08);
+      color: rgba(255, 255, 255, .6);
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 30px;
+      font-size: .85rem;
+      cursor: pointer;
+    }
+
+    .cell-guide-btn-skip:hover {
+      background: rgba(255, 255, 255, .14);
+    }
+
+    /* ---- pH Drift Indicator ---- */
+    #ph-drift-ind {
+      font-size: .73rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 20px;
+      flex-shrink: 0;
+    }
+
+    #scene-cell-select {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+    }
+
+    .cell-sel-title {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    .cell-sel-title small {
+      display: block;
+      font-size: .85rem;
+      font-weight: 400;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .cell-mode-grid {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .cell-mode-card {
+      width: 250px;
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 18px;
+      padding: 28px 20px;
+      cursor: pointer;
+      text-align: center;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .08);
+    }
+
+    .cell-mode-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 32px rgba(21, 101, 192, .22);
+      border-color: var(--accent);
+    }
+
+    .cell-mode-icon {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .cell-mode-name {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+
+    .cell-mode-desc {
+      font-size: .78rem;
+      color: var(--text-dim);
+      line-height: 1.65;
+      margin-bottom: 14px;
+    }
+
+    .cell-mode-keys {
+      background: rgba(21, 101, 192, .07);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: .76rem;
+      color: var(--text);
+      line-height: 1.8;
+      text-align: left;
+    }
+
+    /* Defense scene */
+    #scene-cell-defense {
+      flex-direction: column;
+      background: #eef4fb;
+    }
+
+    #cell-def-hud {
+      height: 54px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 14px;
+      background: rgba(255, 255, 255, .9);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .cell-hud-sep {
+      flex: 1;
+    }
+
+    .cell-hud-label {
+      font-size: .68rem;
+      color: var(--text-dim);
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    #cell-def-score {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    #cell-def-time {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+
+    #cell-def-hp-val {
+      font-size: .82rem;
+      font-weight: 700;
+    }
+
+    #cell-def-hp-bar-wrap {
+      width: 130px;
+      height: 11px;
+      background: rgba(0, 0, 0, .1);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    #cell-def-hp-bar {
+      height: 100%;
+      background: #2e7d32;
+      border-radius: 6px;
+      transition: width .3s, background .3s;
+    }
+
+    /* Scenario panel */
+    #cell-scenario-panel {
+      flex-shrink: 0;
+      padding: 7px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(232, 245, 233, .8);
+      transition: background .6s;
+    }
+
+    #cell-scenario-badge {
+      padding: 3px 11px;
+      border-radius: 20px;
+      font-size: .73rem;
+      font-weight: 800;
+      background: rgba(255, 255, 255, .7);
+      color: #1b5e20;
+      border: 1.5px solid #a5d6a7;
+      flex-shrink: 0;
+      transition: color .4s, border-color .4s;
+    }
+
+    #cell-scenario-desc {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+
+    #cell-scenario-hint {
+      font-size: .72rem;
+      color: var(--text-dim);
+      text-align: right;
+      min-width: 160px;
+      line-height: 1.4;
+    }
+
+    /* Play area */
+    #cell-def-play {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cell-extra-space {
+      flex: 3;
+      background: linear-gradient(to bottom, rgba(225, 240, 255, .5), rgba(186, 220, 250, .35));
+      position: relative;
+      overflow: visible;
+    }
+
+    .cell-extra-label {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
+      font-size: .66rem;
+      color: #1565c0;
+      font-weight: 700;
+      opacity: .6;
+    }
+
+    #cell-membrane-bar {
+      flex-shrink: 0;
+      height: 80px;
+      background: rgba(8, 24, 60, .9);
+      z-index: 20;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .mem-flow-r {
+      animation: memFlowR 12s linear infinite;
+    }
+
+    .mem-flow-l {
+      animation: memFlowL 9s linear infinite;
+    }
+
+    @keyframes memFlowR {
+      from {
+        transform: translateX(0)
+      }
+
+      to {
+        transform: translateX(16px)
+      }
+    }
+
+    @keyframes memFlowL {
+      from {
+        transform: translateX(0)
+      }
+
+      to {
+        transform: translateX(-16px)
+      }
+    }
+
+    .membrane-channel {
+      cursor: help;
+    }
+
+    .membrane-channel:hover rect {
+      fill: rgba(156, 39, 176, .75) !important;
+    }
+
+    .cell-intra-space {
+      flex: 2;
+      background: linear-gradient(to bottom, rgba(230, 243, 231, .4), rgba(200, 230, 201, .25));
+      position: relative;
+    }
+
+    .cell-intra-label {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      font-size: .66rem;
+      color: #2e7d32;
+      font-weight: 700;
+      opacity: .6;
+    }
+
+    /* Falling molecules */
+    .cell-mol {
+      position: absolute;
+      min-width: 130px;
+      padding: 10px 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .94);
+      border: 2.5px solid rgba(21, 101, 192, .25);
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .13);
+      z-index: 15;
+      transform: translateX(-50%);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .cell-mol-formula {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    .cell-mol-name {
+      font-size: .7rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .cell-mol.in-zone {
+      border-color: #7b1fa2;
+      box-shadow: 0 0 0 3px rgba(123, 31, 162, .22), 0 4px 18px rgba(0, 0, 0, .18);
+    }
+
+    .cell-mol.judged-allow {
+      border-color: #2e7d32;
+      background: rgba(232, 245, 233, .96);
+      animation: cellMolSlide .4s ease forwards;
+    }
+
+    .cell-mol.judged-block {
+      border-color: #c62828;
+      background: rgba(255, 235, 238, .96);
+      animation: cellMolBounce .45s ease forwards;
+    }
+
+    @keyframes cellMolSlide {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(50px) scale(.8);
+      }
+    }
+
+    @keyframes cellMolBounce {
+      0% {
+        transform: translateX(-50%);
+      }
+
+      20% {
+        transform: translate(calc(-50% + 16px));
+      }
+
+      50% {
+        transform: translate(calc(-50% - 10px));
+      }
+
+      75% {
+        transform: translate(calc(-50% + 5px));
+      }
+
+      100% {
+        transform: translateX(-50%) translateY(-60px) scale(.7);
+        opacity: 0;
+      }
+    }
+
+    /* Judge text */
+    #cell-def-judge {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.5rem;
+      font-weight: 900;
+      pointer-events: none;
+      z-index: 30;
+      opacity: 0;
+      white-space: nowrap;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+    }
+
+    @keyframes cellJudgeAnim {
+      0% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1.25);
+      }
+
+      65% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-18px);
+      }
+    }
+
+    /* Key bar */
+    #cell-key-bar {
+      flex-shrink: 0;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background: rgba(255, 255, 255, .92);
+      border-top: 1px solid var(--border);
+      z-index: 10;
+    }
+
+    .cell-key-hint {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: .84rem;
+      font-weight: 600;
+    }
+
+    /* Defense pause */
+    #cell-def-pause-ov {
+      position: absolute;
+      inset: 0;
+      background: rgba(240, 244, 248, .9);
+      z-index: 50;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    #cell-def-pause-ov h2 {
+      font-size: 2rem;
+      font-weight: 900;
+    }
+
+    /* ===== SNIPER SCENE ===== */
+    #scene-cell-sniper {
+      background: #0d1b2a;
+      cursor: none;
+      overflow: hidden;
+    }
+
+    #cell-sniper-hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 14px;
+      background: rgba(0, 0, 0, .55);
+      z-index: 30;
+      border-bottom: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .cell-sn-label {
+      font-size: .66rem;
+      color: rgba(255, 255, 255, .5);
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .cell-sn-sep {
+      flex: 1;
+    }
+
+    #cell-sn-score {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: #81d4fa;
+    }
+
+    #cell-sn-hp-wrap {
+      width: 110px;
+      height: 9px;
+      background: rgba(255, 255, 255, .15);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    #cell-sn-hp-bar {
+      height: 100%;
+      background: #66bb6a;
+      border-radius: 5px;
+      transition: width .3s, background .3s;
+    }
+
+    #cell-sn-hp-val {
+      font-size: .78rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    #cell-sn-time {
+      font-size: .95rem;
+      font-weight: 700;
+      color: #ce93d8;
+    }
+
+    #cell-sn-scenario {
+      font-size: .76rem;
+      color: rgba(255, 255, 255, .82);
+      font-weight: 600;
+      max-width: 300px;
+      text-align: center;
+      transition: opacity .3s;
+    }
+
+    #cell-sniper-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Sniper floating molecules */
+    .cell-sniper-mol {
+      position: absolute;
+      padding: 7px 13px;
+      border-radius: 50px;
+      font-size: .84rem;
+      font-weight: 800;
+      border: 2px solid rgba(255, 255, 255, .3);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .35);
+      pointer-events: none;
+      z-index: 10;
+      white-space: nowrap;
+      user-select: none;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .cell-sniper-mol.sn-target {
+      background: rgba(183, 28, 28, .82);
+      border-color: #ef9a9a;
+    }
+
+    .cell-sniper-mol.sn-safe {
+      background: rgba(27, 94, 32, .72);
+      border-color: #a5d6a7;
+    }
+
+    .cell-sniper-mol.sn-neutral {
+      background: rgba(21, 101, 192, .65);
+      border-color: #90caf9;
+    }
+
+    .cell-sniper-mol.sn-aimed {
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, .82), 0 0 20px rgba(255, 255, 255, .4);
+    }
+
+    @keyframes cellSniperHit {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.5);
+        opacity: .6;
+      }
+
+      100% {
+        transform: scale(0);
+        opacity: 0;
+      }
+    }
+
+    /* Scope canvas */
+    #cell-scope-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 50;
+      pointer-events: none;
+    }
+
+    /* Sniper pause */
+    #cell-sniper-pause {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, .78);
+      z-index: 60;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    #cell-sniper-pause h2 {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .cell-sn-po-btn {
+      padding: 10px 24px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(255, 255, 255, .25);
+      background: rgba(255, 255, 255, .1);
+      color: #fff;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      transition: .15s;
+    }
+
+    .cell-sn-po-btn:hover {
+      background: rgba(255, 255, 255, .2);
+    }
+
+    @keyframes cellScreenShake {
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      15% {
+        transform: translateX(-10px);
+      }
+
+      30% {
+        transform: translateX(10px);
+      }
+
+      45% {
+        transform: translateX(-7px);
+      }
+
+      60% {
+        transform: translateX(7px);
+      }
+
+      75% {
+        transform: translateX(-3px);
+      }
+
+      90% {
+        transform: translateX(3px);
+      }
+    }
+
+    .cell-shake {
+      animation: cellScreenShake .42s ease;
+    }
+
+    /* ===== CELL RESULT ===== */
+    #scene-cell-result {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    #cell-res-mode {
+      font-size: .95rem;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    #cell-res-rank {
+      font-size: 6rem;
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(135deg, #2e7d32, #1565c0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #cell-res-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      padding: 26px 40px;
+      min-width: 320px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, .09);
+    }
+
+    #cell-res-worst {
+      background: rgba(255, 235, 238, .92);
+      border: 1.5px solid #ef9a9a;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: .82rem;
+      color: #b71c1c;
+      font-weight: 600;
+      max-width: 340px;
+      text-align: center;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Lab SVG decorations -->
+  <svg id="lab-deco" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+    <!-- Flask bottom-left -->
+    <g transform="translate(38,420)" opacity=".11">
+      <rect x="18" y="0" width="5" height="28" fill="#1565c0" rx="2" />
+      <path d="M12 28 L0 62 Q12 78 24 62 L36 28 Z" fill="#1565c0" />
+      <ellipse cx="18" cy="62" rx="12" ry="4" fill="#4fc3f7" opacity=".6" />
+      <rect x="10" y="26" width="28" height="4" fill="#1565c0" rx="1" />
+    </g>
+    <!-- Beaker top-right -->
+    <g transform="translate(88,10)" opacity=".09" style="position:absolute;right:80px;">
+      <!-- using fixed coords near right edge -->
+    </g>
+    <!-- DNA sketch top-left -->
+    <g transform="translate(30,40)" opacity=".09">
+      <path d="M0 0 Q18 22 36 0 Q54 22 72 0" fill="none" stroke="#c62828" stroke-width="3.5" stroke-linecap="round" />
+      <path d="M0 12 Q18 34 36 12 Q54 34 72 12" fill="none" stroke="#1565c0" stroke-width="3.5"
+        stroke-linecap="round" />
+      <line x1="9" y1="6" x2="9" y2="18" stroke="#888" stroke-width="1.5" />
+      <line x1="27" y1="6" x2="27" y2="18" stroke="#888" stroke-width="1.5" />
+      <line x1="45" y1="6" x2="45" y2="18" stroke="#888" stroke-width="1.5" />
+      <line x1="63" y1="6" x2="63" y2="18" stroke="#888" stroke-width="1.5" />
+    </g>
+    <!-- Molecule bottom-right -->
+    <g transform="translate(1180,560)" opacity=".09">
+      <circle cx="0" cy="0" r="14" fill="#2e7d32" />
+      <circle cx="40" cy="-14" r="10" fill="#1565c0" />
+      <circle cx="22" cy="26" r="8" fill="#e65100" />
+      <line x1="0" y1="0" x2="40" y2="-14" stroke="#555" stroke-width="2" />
+      <line x1="0" y1="0" x2="22" y2="26" stroke="#555" stroke-width="2" />
+    </g>
+  </svg>
+
+  <!-- ===== PH SELECT ===== -->
+  <div id="scene-ph-select" class="scene fade-in">
+    <div class="ph-select-title">⚗️ 중화 반응 밸런싱<small>산과 염기를 조절해 pH 7을 유지하세요!</small></div>
+    <div class="ph-diff-grid">
+      <div class="ph-diff-card" onclick="PH.start('easy')">
+        <div class="ph-diff-icon">🌱</div>
+        <div class="ph-diff-name">쉬움</div>
+        <div class="ph-diff-desc">느린 속도, 약산·염기만<br>pH 개념 학습용!</div>
+        <div class="ph-best-row">최고: <span id="ph-best-easy">—</span></div>
+      </div>
+      <div class="ph-diff-card" onclick="PH.start('normal')">
+        <div class="ph-diff-icon">⚗️</div>
+        <div class="ph-diff-name">보통</div>
+        <div class="ph-diff-desc">중간 속도, 강산·염기 등장<br>균형 조절 도전!</div>
+        <div class="ph-best-row">최고: <span id="ph-best-normal">—</span></div>
+      </div>
+      <div class="ph-diff-card" onclick="PH.start('hard')">
+        <div class="ph-diff-icon">🔥</div>
+        <div class="ph-diff-name">어려움</div>
+        <div class="ph-diff-desc">빠른 속도, 강산·염기 자주<br>두 벨트 동시 관리!</div>
+        <div class="ph-best-row">최고: <span id="ph-best-hard">—</span></div>
+      </div>
+    </div>
+    <button class="back-btn" onclick="goScene('main')">← 메인으로</button>
+  </div>
+
+  <!-- ===== PH GAME ===== -->
+  <div id="scene-ph-game" class="scene">
+    <!-- HUD -->
+    <div id="ph-hud">
+      <div class="ph-hud-block">
+        <span class="ph-hud-label">SCORE</span>
+        <span id="ph-score">0</span>
+      </div>
+      <div class="ph-hud-block">
+        <span class="ph-hud-label">HP &nbsp;<span id="ph-hp-val">100</span></span>
+        <div id="ph-hp-bar-wrap">
+          <div id="ph-hp-bar" style="width:100%;"></div>
+        </div>
+      </div>
+      <div class="ph-hud-sep"></div>
+      <div class="ph-hud-block">
+        <span class="ph-hud-label">TIME</span>
+        <span id="ph-time">0</span>s
+      </div>
+      <button id="ph-pause-btn2" onclick="PH.togglePause()">⏸ 일시정지</button>
+    </div>
+
+    <!-- Gas environment bar -->
+    <div id="ph-gas-bar" class="ph-gas-neutral">
+      <span id="ph-gas-icon">💨</span>
+      <span class="ph-hud-label">현재 환경:</span>
+      <span id="ph-gas-formula">CO₂</span>
+      <span id="ph-gas-effect">이산화탄소 — 약산성</span>
+      <div id="ph-gas-duration">
+        <div id="ph-gas-dur-fill" style="width:100%;"></div>
+      </div>
+      <span id="ph-drift-ind">↓ 산성화 진행</span>
+    </div>
+
+    <!-- Belt row -->
+    <div id="ph-belt-area">
+      <!-- Left belt: acids → -->
+      <div id="ph-left-belt-wrap">
+        <div class="ph-belt-label-top">⚗️ 화합물 (→)</div>
+        <div id="ph-left-belt" class="ph-belt"></div>
+        <div class="ph-belt-key-hint">[ F ] 또는 클릭 → 비커에 투입</div>
+      </div>
+      <!-- Center pour zone -->
+      <div id="ph-pour-zone">
+        <span class="ph-pour-arrow">↓</span>
+        <div id="ph-pour-indicator">투입<br>지점</div>
+      </div>
+      <!-- Right belt: mixed ← -->
+      <div id="ph-right-belt-wrap">
+        <div class="ph-belt-label-top">⚗️ 화합물 (←)</div>
+        <div id="ph-right-belt" class="ph-belt"></div>
+        <div class="ph-belt-key-hint">[ J ] 또는 클릭 → 비커에 투입</div>
+      </div>
+    </div>
+
+    <!-- Main: beaker + info -->
+    <div id="ph-main-area">
+      <!-- Beaker -->
+      <div id="ph-beaker-column">
+        <div id="ph-beaker-opening"></div>
+        <div id="ph-beaker-body">
+          <div id="ph-liquid"></div>
+          <div id="ph-ph-display">7.0</div>
+          <div id="ph-ph-label">pH</div>
+          <div class="ph-glass-shine"></div>
+        </div>
+        <div id="ph-judge-text2"></div>
+      </div>
+
+      <!-- Info panel -->
+      <div id="ph-info-panel">
+        <div class="ph-info-card">
+          <div class="ph-info-card-title">📊 3초마다 점수 획득</div>
+          <div style="font-size:.78rem;line-height:1.7;color:var(--text-dim);">
+            pH 6.5~7.5 → +100 <span style="color:#2e7d32;">PERFECT</span><br>
+            pH 6.0~8.0 → +50 <span style="color:#e65100;">GOOD</span><br>
+            pH 5.0~9.0 → +10 <span style="color:#1565c0;">OK</span><br>
+            그 외 → HP 감소
+          </div>
+        </div>
+        <div class="ph-info-card">
+          <div class="ph-info-card-title">⚠️ 연속 투입 기록</div>
+          <div id="ph-consecutive-bar">
+            <div class="ph-consec-dot" id="pcd-0"></div>
+            <div class="ph-consec-dot" id="pcd-1"></div>
+            <div class="ph-consec-dot" id="pcd-2"></div>
+          </div>
+          <div style="font-size:.72rem;color:var(--text-dim);margin-top:4px;">3회 연속 시 역류 패널티!</div>
+        </div>
+        <div class="ph-info-card" style="font-size:.78rem;line-height:1.7;color:var(--text-dim);">
+          <div class="ph-info-card-title">⚡ pH 위험 구간</div>
+          pH ≤ 4 또는 ≥ 10<br>매초 HP 감소
+        </div>
+      </div>
+    </div>
+
+    <!-- pH Scale bar -->
+    <div id="ph-scale-area">
+      <div class="ph-scale-legends">
+        <span class="ph-scale-legend-acid">산성 (pH 1)</span>
+        <span class="ph-scale-legend-neutral">중성 (pH 7)</span>
+        <span class="ph-scale-legend-base">염기성 (pH 14)</span>
+      </div>
+      <div id="ph-scale-track">
+        <div id="ph-scale-dot" style="left:50%;"></div>
+      </div>
+      <div class="ph-scale-legends" style="font-size:.65rem;margin-top:2px;">
+        <span>1</span><span>3</span><span>5</span><span>7</span><span>9</span><span>11</span><span>14</span>
+      </div>
+    </div>
+
+    <!-- Scientist gimmick -->
+    <div id="ph-scientist-wrap">
+      <svg id="ph-sci-svg" width="86" height="138" viewBox="0 0 86 138" xmlns="http://www.w3.org/2000/svg">
+        <!-- Hair -->
+        <ellipse cx="43" cy="22" rx="21" ry="13" fill="#8d6e63" />
+        <!-- Head -->
+        <ellipse cx="43" cy="34" rx="18" ry="18" fill="#ffcc80" />
+        <!-- Glasses -->
+        <rect x="26" y="27" width="13" height="10" rx="3" fill="none" stroke="#5d4037" stroke-width="2" />
+        <rect x="47" y="27" width="13" height="10" rx="3" fill="none" stroke="#5d4037" stroke-width="2" />
+        <line x1="39" y1="32" x2="47" y2="32" stroke="#5d4037" stroke-width="2" />
+        <line x1="26" y1="32" x2="22" y2="30" stroke="#5d4037" stroke-width="2" />
+        <line x1="60" y1="32" x2="64" y2="30" stroke="#5d4037" stroke-width="2" />
+        <!-- Eyes -->
+        <circle cx="33" cy="32" r="2.5" fill="#37474f" />
+        <circle cx="54" cy="32" r="2.5" fill="#37474f" />
+        <!-- Smile -->
+        <path d="M36 44 Q43 50 50 44" fill="none" stroke="#bf8040" stroke-width="2" stroke-linecap="round" />
+        <!-- Lab coat -->
+        <path d="M16 56 L16 128 L70 128 L70 56 L56 49 L43 52 L30 49 Z" fill="white" stroke="#ddd" stroke-width="1.5" />
+        <!-- Lapels -->
+        <path d="M43 52 L34 64 L24 68" fill="none" stroke="#ccc" stroke-width="1.5" />
+        <path d="M43 52 L52 64 L62 68" fill="none" stroke="#ccc" stroke-width="1.5" />
+        <!-- Buttons -->
+        <circle cx="43" cy="76" r="2" fill="#ccc" />
+        <circle cx="43" cy="89" r="2" fill="#ccc" />
+        <circle cx="43" cy="102" r="2" fill="#ccc" />
+        <!-- Left arm -->
+        <path d="M16 60 Q6 82 10 106" fill="none" stroke="#ffcc80" stroke-width="9" stroke-linecap="round" />
+        <!-- Right arm (holding beaker) -->
+        <path d="M70 60 Q80 80 76 100" fill="none" stroke="#ffcc80" stroke-width="9" stroke-linecap="round" />
+        <!-- Beaker in right hand -->
+        <rect x="72" y="94" width="20" height="28" rx="2" fill="rgba(179,229,252,0.6)" stroke="#1565c0"
+          stroke-width="2" />
+        <rect x="70" y="90" width="24" height="7" rx="2" fill="none" stroke="#1565c0" stroke-width="2" />
+        <line x1="72" y1="104" x2="92" y2="104" stroke="#42a5f5" stroke-width="1" opacity=".6" />
+      </svg>
+      <div id="ph-sci-bubble">
+        <div id="ph-sci-text">...</div>
+        <div id="ph-sci-timer-bar">
+          <div id="ph-sci-timer-fill"></div>
+        </div>
+        <div id="ph-sci-btns">
+          <button class="ph-sci-btn ph-sci-accept" onclick="PH.acceptSci()">✅ 수락</button>
+          <button class="ph-sci-btn ph-sci-reject" onclick="PH.rejectSci()">❌ 거절</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pause overlay -->
+    <div id="ph-pause-overlay">
+      <h2>⏸ 일시정지</h2>
+      <div class="pause-btn-row">
+        <button class="po-btn" onclick="PH.togglePause()">▶ 계속</button>
+        <button class="po-btn" onclick="goScene('ph-select')">🏠 나가기</button>
+        <button class="po-btn" onclick="PH.restart()">↺ 다시하기</button>
+      </div>
+    </div>
+
+    <!-- Tutorial overlay -->
+    <div id="ph-tutorial-overlay">
+      <div class="ph-tutorial-box">
+        <h2>🧪 중화 반응 밸런싱 — 조작법</h2>
+        <div class="ph-ph-legend">
+          <div class="ph-ph-legend-item" style="background:#c62828;">pH 1~6 산성</div>
+          <div class="ph-ph-legend-item" style="background:#2e7d32;">pH 7 중성</div>
+          <div class="ph-ph-legend-item" style="background:#1565c0;">pH 8~14 염기성</div>
+        </div>
+        <div class="ph-tut-row"><span class="ph-tut-icon">🔴</span>
+          <div>왼쪽 벨트에서 <strong>산성 물질</strong>이 흘러옵니다. 비커가 염기성(↑)이면 산을 추가해 중화하세요.</div>
+        </div>
+        <div class="ph-tut-row"><span class="ph-tut-icon">🔵</span>
+          <div>오른쪽 벨트에서 <strong>염기성 물질</strong>이 흘러옵니다. 비커가 산성(↓)이면 염기를 추가해 중화하세요.</div>
+        </div>
+        <div class="ph-tut-row"><span class="ph-tut-icon">⚠️</span>
+          <div>같은 쪽 물질을 <strong>3번 연속</strong> 투입하면 과잉 반응으로 역류 패널티가 발생합니다!</div>
+        </div>
+        <div class="ph-tut-keys">
+          <div class="ph-tut-key-item"><span class="key-cap">F</span> 또는 클릭 = 산 투입</div>
+          <div class="ph-tut-key-item"><span class="key-cap">J</span> 또는 클릭 = 염기 투입</div>
+          <div class="ph-tut-key-item"><span class="key-cap">ESC</span> = 일시정지</div>
+        </div>
+        <button class="start-btn" onclick="PH.tutorialDone()" style="margin-top:0;">알겠습니다! 시작!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PH RESULT ===== -->
+  <div id="scene-ph-result" class="scene fade-in">
+    <div style="font-size:1rem;color:var(--text-dim);font-weight:600;">⚗️ 중화 반응 결과</div>
+    <div id="ph-result-rank">A</div>
+    <div id="ph-new-record"
+      style="background:linear-gradient(135deg,#ffd700,#ff5722);color:#000;padding:4px 14px;border-radius:20px;font-weight:900;font-size:.78rem;display:none;">
+      🏆 NEW RECORD!</div>
+    <div id="ph-result-card">
+      <div class="result-row"><span class="result-label">최종 점수</span><span class="result-val" id="ph-r-score">0</span>
+      </div>
+      <div class="result-row"><span class="result-label">생존 시간</span><span class="result-val" id="ph-r-time">0초</span>
+      </div>
+      <div class="result-row"><span class="result-label">최종 pH</span><span class="result-val"
+          id="ph-r-final-ph">7.0</span></div>
+      <hr style="border-color:var(--border);margin:10px 0;">
+      <div class="result-row"><span class="result-label">PERFECT</span><span class="result-val" style="color:#2e7d32;"
+          id="ph-r-perfect">0</span></div>
+      <div class="result-row"><span class="result-label">GOOD</span><span class="result-val" style="color:#e65100;"
+          id="ph-r-good">0</span></div>
+      <div class="result-row"><span class="result-label">OK</span><span class="result-val" style="color:#1565c0;"
+          id="ph-r-ok">0</span></div>
+    </div>
+    <div class="result-btn-row">
+      <button class="result-btn" onclick="PH.restart()">↺ 다시하기</button>
+      <button class="result-btn primary" onclick="goScene('ph-select')">⚗️ 난이도 선택</button>
+      <button class="result-btn" onclick="goScene('main')">🏠 메인</button>
+    </div>
+  </div>
+
+  <!-- ===== CELL GUIDE ===== -->
+  <div id="scene-cell-guide" class="scene fade-in">
+    <div class="cell-guide-box">
+      <h2>🔬 세포막 투과성 가이드</h2>
+      <div class="cell-guide-cols">
+        <div class="cell-guide-col hydro">
+          <h3>💧 소수성 물질 (통과 가능)</h3>
+          <ul>
+            <li>O₂ (산소)</li>
+            <li>CO₂ (이산화탄소)</li>
+            <li>N₂ (질소)</li>
+            <li>지방산·스테로이드</li>
+            <li>에탄올</li>
+          </ul>
+        </div>
+        <div class="cell-guide-col philic">
+          <h3>🌊 친수성 물질 (채널 필요)</h3>
+          <ul>
+            <li>H₂O (수분자 – 아쿠아포린)</li>
+            <li>Na⁺, K⁺, Ca²⁺ (이온)</li>
+            <li>포도당 (수송체 필요)</li>
+            <li>아미노산</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cell-guide-harmful">
+        <h3>⚠️ 유해 물질 (무조건 차단)</h3>
+        <ul>
+          <li>독성 단백질 독소 (Tox)</li>
+          <li>과도한 자유라디칼 (ROS)</li>
+          <li>외래 바이러스 입자</li>
+          <li>과산화수소 (H₂O₂) 고농도</li>
+        </ul>
+      </div>
+      <!-- sniper-only section -->
+      <div id="cell-guide-sniper-sec" style="display:none;">
+        <table class="cell-guide-sniper-table">
+          <thead>
+            <tr>
+              <th>물질</th>
+              <th>제거 가능</th>
+              <th>절대 제거 불가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>유해 독소 (Tox)</td>
+              <td>✅</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>자유라디칼 (ROS)</td>
+              <td>✅</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>소수성 정상 분자</td>
+              <td></td>
+              <td>❌ (세포 필수)</td>
+            </tr>
+            <tr>
+              <td>이온 채널 통과 물질</td>
+              <td></td>
+              <td>❌ (필수 수송)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="cell-guide-btns">
+        <button class="cell-guide-btn-start" onclick="CELL.guideUnderstand()">이해했어요 — 게임 시작</button>
+        <button class="cell-guide-btn-skip" onclick="CELL.guideSkipBtn()">건너뛰기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CELL SELECT ===== -->
+  <div id="scene-cell-select" class="scene fade-in">
+    <div class="cell-sel-title">🔬 세포 소기관 방어 게임<small>세포막 투과성 원리로 세포를 지키세요!</small></div>
+    <div class="cell-mode-grid">
+      <div class="cell-mode-card" onclick="CELL.showGuide('defense')">
+        <div class="cell-mode-icon">🛡️</div>
+        <div class="cell-mode-name">방어 모드</div>
+        <div class="cell-mode-desc">세포막에 접근하는 물질이 허용인지<br>차단인지 추론해서 판단하세요.<br>세포 상태가 45초마다 바뀝니다!</div>
+        <div class="cell-mode-keys">
+          <span class="key-cap">A</span> / ← 통과 허용<br>
+          <span class="key-cap">D</span> / → 차단·튕겨냄
+        </div>
+      </div>
+      <div class="cell-mode-card" onclick="CELL.showGuide('sniper')">
+        <div class="cell-mode-icon">🎯</div>
+        <div class="cell-mode-name">스나이퍼 모드</div>
+        <div class="cell-mode-desc">세포 내부를 탑다운 시점으로 관찰.<br>떠다니는 물질 중 유해물질만<br>정밀하게 조준해서 제거하세요!</div>
+        <div class="cell-mode-keys">
+          마우스 이동: 조준<br>
+          좌클릭: 발사
+        </div>
+      </div>
+    </div>
+    <button class="back-btn" onclick="goScene('main')">← 메인으로</button>
+  </div>
+
+  <!-- ===== CELL DEFENSE ===== -->
+  <div id="scene-cell-defense" class="scene">
+    <div id="cell-def-hud">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <span class="cell-hud-label">SCORE</span>
+        <span id="cell-def-score">0</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <span class="cell-hud-label">HP &nbsp;<span id="cell-def-hp-val">100</span></span>
+        <div id="cell-def-hp-bar-wrap">
+          <div id="cell-def-hp-bar" style="width:100%;"></div>
+        </div>
+      </div>
+      <div class="cell-hud-sep"></div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <span class="cell-hud-label">TIME</span>
+        <span id="cell-def-time">0s</span>
+      </div>
+      <button onclick="CELL.toggleDefPause()"
+        style="background:var(--card-bg);border:1.5px solid var(--border);color:var(--text-dim);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:.8rem;">⏸
+        일시정지</button>
+    </div>
+    <div id="cell-scenario-panel">
+      <div id="cell-scenario-badge">✅ 정상</div>
+      <div id="cell-scenario-desc">✅ 정상 상태 — 소수성 분자만 통과, 나머지 차단</div>
+      <div id="cell-scenario-hint">소수성(O₂, CO₂ 등)은 허용</div>
+    </div>
+    <div id="cell-def-play">
+      <div class="cell-extra-space" id="cell-extra-space">
+        <div class="cell-extra-label">세포 외부 (Extracellular)</div>
+      </div>
+      <div id="cell-membrane-bar"></div>
+      <div class="cell-intra-space">
+        <div class="cell-intra-label">세포 내부 (Intracellular)</div>
+      </div>
+      <div id="cell-def-judge"></div>
+    </div>
+    <div id="cell-key-bar">
+      <div class="cell-key-hint"><span class="key-cap">A</span> / ← 통과 허용</div>
+      <div style="width:1px;height:28px;background:var(--border);"></div>
+      <div class="cell-key-hint"><span class="key-cap">D</span> / → 차단·튕겨냄</div>
+      <div style="width:1px;height:28px;background:var(--border);"></div>
+      <div class="cell-key-hint" style="color:var(--text-dim);font-size:.74rem;"><span class="key-cap">ESC</span> 일시정지
+      </div>
+    </div>
+    <div id="cell-def-pause-ov">
+      <h2>⏸ 일시정지</h2>
+      <div class="pause-btn-row">
+        <button class="po-btn" onclick="CELL.toggleDefPause()">▶ 계속</button>
+        <button class="po-btn" onclick="CELL.changeMode()">🔄 모드 선택</button>
+        <button class="po-btn" onclick="CELL.restart()">↺ 다시하기</button>
+        <button class="po-btn" onclick="goScene('main')">🏠 메인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CELL SNIPER ===== -->
+  <div id="scene-cell-sniper" class="scene">
+    <div id="cell-sniper-hud">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <span class="cell-sn-label">SCORE</span>
+        <span id="cell-sn-score">0</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <span class="cell-sn-label">HP &nbsp;<span id="cell-sn-hp-val">100</span></span>
+        <div id="cell-sn-hp-wrap">
+          <div id="cell-sn-hp-bar" style="width:100%;"></div>
+        </div>
+      </div>
+      <div class="cell-sn-sep"></div>
+      <span id="cell-sn-scenario">라운드 준비중...</span>
+      <div class="cell-sn-sep"></div>
+      <span id="cell-sn-time">0s</span>
+      <button onclick="CELL.toggleSniperPause()"
+        style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px;">⏸</button>
+    </div>
+    <!-- Cell interior SVG background -->
+    <svg id="cell-sniper-bg" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1280 720"
+      preserveAspectRatio="xMidYMid meet">
+      <ellipse cx="640" cy="390" rx="580" ry="310" fill="rgba(30,60,90,.12)" stroke="rgba(100,200,150,.1)"
+        stroke-width="5" />
+      <!-- Nucleus -->
+      <ellipse cx="640" cy="380" rx="95" ry="85" fill="rgba(106,27,154,.2)" stroke="rgba(171,71,188,.42)"
+        stroke-width="3" />
+      <ellipse cx="640" cy="380" rx="55" ry="50" fill="rgba(106,27,154,.24)" stroke="rgba(171,71,188,.22)"
+        stroke-width="1.5" />
+      <text x="640" y="385" text-anchor="middle" fill="rgba(206,147,216,.82)" font-size="12" font-weight="700"
+        font-family="sans-serif">핵</text>
+      <!-- Mitochondria 1 -->
+      <ellipse cx="370" cy="260" rx="54" ry="27" fill="rgba(230,81,0,.18)" stroke="rgba(255,152,0,.42)"
+        stroke-width="2.5" />
+      <path d="M340 260 Q355 248 370 260 Q385 272 400 260 Q415 248 424 260" fill="none" stroke="rgba(255,152,0,.28)"
+        stroke-width="1.5" />
+      <text x="370" y="296" text-anchor="middle" fill="rgba(255,183,77,.78)" font-size="11"
+        font-family="sans-serif">미토콘드리아</text>
+      <!-- Mitochondria 2 -->
+      <ellipse cx="920" cy="490" rx="48" ry="24" fill="rgba(230,81,0,.15)" stroke="rgba(255,152,0,.35)"
+        stroke-width="2" />
+      <path d="M892 490 Q906 478 920 490 Q934 502 948 490 Q962 478 968 490" fill="none" stroke="rgba(255,152,0,.22)"
+        stroke-width="1.5" />
+      <text x="920" y="524" text-anchor="middle" fill="rgba(255,183,77,.68)" font-size="11"
+        font-family="sans-serif">미토콘드리아</text>
+      <!-- Ribosomes -->
+      <circle cx="510" cy="200" r="6" fill="rgba(100,181,246,.52)" />
+      <circle cx="524" cy="195" r="5" fill="rgba(100,181,246,.42)" />
+      <circle cx="501" cy="210" r="5" fill="rgba(100,181,246,.42)" />
+      <circle cx="517" cy="208" r="4" fill="rgba(100,181,246,.38)" />
+      <text x="512" y="226" text-anchor="middle" fill="rgba(144,202,249,.62)" font-size="10"
+        font-family="sans-serif">리보솜</text>
+      <circle cx="785" cy="545" r="6" fill="rgba(100,181,246,.48)" />
+      <circle cx="799" cy="540" r="5" fill="rgba(100,181,246,.38)" />
+      <circle cx="776" cy="554" r="5" fill="rgba(100,181,246,.38)" />
+      <!-- Endoplasmic reticulum -->
+      <path d="M195 340 Q235 300 275 340 Q315 380 355 340 Q395 300 435 340" fill="none" stroke="rgba(129,199,212,.28)"
+        stroke-width="4" />
+      <path d="M200 348 Q240 308 280 348 Q320 388 360 348 Q400 308 440 348" fill="none" stroke="rgba(129,199,212,.18)"
+        stroke-width="2.5" />
+      <text x="318" y="388" text-anchor="middle" fill="rgba(129,212,250,.52)" font-size="10"
+        font-family="sans-serif">소포체</text>
+      <!-- Golgi apparatus -->
+      <path d="M960 240 Q1010 230 1060 240" fill="none" stroke="rgba(255,213,0,.48)" stroke-width="5"
+        stroke-linecap="round" />
+      <path d="M950 255 Q1010 243 1070 255" fill="none" stroke="rgba(255,213,0,.38)" stroke-width="4"
+        stroke-linecap="round" />
+      <path d="M955 270 Q1010 258 1065 270" fill="none" stroke="rgba(255,213,0,.28)" stroke-width="3.5"
+        stroke-linecap="round" />
+      <path d="M960 285 Q1010 274 1060 285" fill="none" stroke="rgba(255,213,0,.18)" stroke-width="3"
+        stroke-linecap="round" />
+      <text x="1010" y="308" text-anchor="middle" fill="rgba(255,224,130,.72)" font-size="11"
+        font-family="sans-serif">골지체</text>
+      <!-- Vacuole -->
+      <ellipse cx="810" cy="255" rx="42" ry="36" fill="rgba(129,212,250,.09)" stroke="rgba(129,212,250,.35)"
+        stroke-width="2" />
+      <text x="810" y="259" text-anchor="middle" fill="rgba(129,212,250,.72)" font-size="10"
+        font-family="sans-serif">액포</text>
+      <!-- Lysosome -->
+      <circle cx="480" cy="460" r="24" fill="rgba(244,67,54,.11)" stroke="rgba(244,67,54,.30)" stroke-width="2" />
+      <text x="480" y="464" text-anchor="middle" fill="rgba(239,154,154,.82)" font-size="10"
+        font-family="sans-serif">리소좀</text>
+    </svg>
+    <canvas id="cell-scope-canvas"></canvas>
+    <div id="cell-sniper-pause">
+      <h2>⏸ 일시정지</h2>
+      <div style="display:flex;gap:12px;">
+        <button class="cell-sn-po-btn" onclick="CELL.toggleSniperPause()">▶ 계속</button>
+        <button class="cell-sn-po-btn" onclick="CELL.changeMode()">🔄 모드 선택</button>
+        <button class="cell-sn-po-btn" onclick="CELL.restart()">↺ 다시하기</button>
+        <button class="cell-sn-po-btn" onclick="goScene('main')">🏠 메인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CELL RESULT ===== -->
+  <div id="scene-cell-result" class="scene fade-in">
+    <div id="cell-res-mode">🔬 세포 방어 결과</div>
+    <div id="cell-res-rank">A</div>
+    <div id="cell-res-card">
+      <div class="result-row"><span class="result-label">최종 점수</span><span class="result-val" id="cell-r-score">0</span>
+      </div>
+      <div class="result-row"><span class="result-label">생존 시간</span><span class="result-val" id="cell-r-time">0초</span>
+      </div>
+      <hr style="border-color:var(--border);margin:10px 0;">
+      <div class="result-row"><span class="result-label">올바른 판단</span><span class="result-val" style="color:#2e7d32;"
+          id="cell-r-correct">0</span></div>
+      <div class="result-row"><span class="result-label">잘못된 판단</span><span class="result-val" style="color:#c62828;"
+          id="cell-r-wrong">0</span></div>
+      <div class="result-row" id="cell-r-removes-row"><span class="result-label">제거한 유해물질</span><span class="result-val"
+          style="color:#1565c0;" id="cell-r-removes">0</span></div>
+    </div>
+    <div id="cell-res-worst"></div>
+    <div class="result-btn-row">
+      <button class="result-btn" onclick="CELL.restart()">↺ 다시하기</button>
+      <button class="result-btn primary" onclick="CELL.changeMode()">🔄 모드 선택</button>
+      <button class="result-btn" onclick="goScene('main')">🏠 메인</button>
+    </div>
+  </div>
+
+  <!-- ===== MAIN MENU ===== -->
+  <div id="scene-main" class="scene active fade-in">
+    <div class="main-title">
+      <h1>GENE-IUS<br>pH-ANTASY</h1>
+      <p>생명과학 · 화학 교육 게임 플랫폼</p>
+    </div>
+    <div class="game-grid" id="game-grid"></div>
+  </div>
+
+  <!-- ===== SELECT / SETTINGS ===== -->
+  <div id="scene-select" class="scene fade-in">
+    <div style="display:flex;align-items:center;gap:14px;width:100%;max-width:720px;">
+      <button class="back-btn" onclick="goScene('main')">← 뒤로</button>
+      <span class="scene-title">🧬 DNA 리듬게임</span>
+    </div>
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('song')">곡 선택</button>
+      <button class="tab-btn" onclick="switchTab('infinite')">무한 모드</button>
+      <button class="tab-btn" onclick="switchTab('settings')">설정</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-song" style="max-width:720px;">
+      <div class="song-list" id="song-list"></div>
+      <div style="margin-top:14px;display:flex;justify-content:flex-end;">
+        <button class="start-btn" onclick="startGame('song')">▶ 시작</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-infinite" style="max-width:720px;">
+      <div class="settings-section" style="text-align:center;">
+        <div style="font-size:2.5rem;margin-bottom:6px;">∞</div>
+        <div style="font-weight:700;margin-bottom:4px;font-size:1.05rem;">무한 모드</div>
+        <div style="color:var(--text-dim);font-size:.83rem;margin-bottom:18px;">
+          랜덤 염기 노트가 끝없이 생성됩니다.<br>HP가 0이 되면 종료됩니다.
+        </div>
+        <div id="infinite-record" style="color:var(--accent);font-size:.88rem;margin-bottom:18px;font-weight:700;">
+        </div>
+        <button class="start-btn" onclick="startGame('infinite')">▶ 무한 모드 시작</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-settings" style="max-width:720px;">
+      <div class="settings-section">
+        <h3>⌨️ 키 배열 프리셋</h3>
+        <div class="preset-row" id="preset-btns"></div>
+        <div id="preset-table-wrap"></div>
+      </div>
+      <div class="settings-section">
+        <h3>⚡ 노트 속도</h3>
+        <div class="speed-btns" id="speed-btns"></div>
+      </div>
+      <div class="settings-section">
+        <h3>🎨 색상 테마 (스킨)</h3>
+        <div class="skin-btns" id="skin-btns"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GAME ===== -->
+  <div id="scene-game" class="scene">
+    <div id="game-left">
+      <span class="hp-label">HP</span>
+      <div id="hp-bar-wrap">
+        <div id="hp-bar" style="height:100%;"></div>
+      </div>
+      <span id="hp-val">100</span>
+    </div>
+
+    <div id="game-center">
+      <div id="game-top-info">
+        <span id="song-title-disp">—</span>
+        <span>BPM <span id="bpm-disp">—</span></span>
+      </div>
+      <button id="pause-btn" onclick="togglePause()">⏸ 일시정지</button>
+      <canvas id="dna-canvas"></canvas>
+      <div id="judge-line">
+        <div id="judge-line-marker"></div>
+      </div>
+      <div id="key-row"></div>
+      <div id="judge-text"></div>
+
+      <div id="countdown-overlay">
+        <div id="countdown-num">3</div>
+        <div id="countdown-sub">준비하세요...</div>
+      </div>
+      <div id="pause-overlay">
+        <h2>⏸ 일시정지</h2>
+        <div class="pause-btn-row">
+          <button class="po-btn" onclick="togglePause()">▶ 계속</button>
+          <button class="po-btn" onclick="goScene('select')">🏠 메뉴</button>
+          <button class="po-btn" onclick="restartGame()">↺ 다시하기</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="game-right">
+      <span class="label-sm">SCORE</span>
+      <span id="score-val">0</span>
+      <div style="height:16px;"></div>
+      <span class="label-sm">COMBO</span>
+      <span id="combo-val">0</span>
+      <span class="combo-label">MAX</span>
+      <span id="max-combo-val">0</span>
+      <div style="flex:1;"></div>
+      <div id="judge-counts">
+        <div style="color:#2e7d32;">PERFECT <span id="cnt-p">0</span></div>
+        <div style="color:#1565c0;">GREAT <span id="cnt-g">0</span></div>
+        <div style="color:#e65100;">GOOD <span id="cnt-ok">0</span></div>
+        <div style="color:#c62828;">MISS <span id="cnt-m">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RESULT ===== -->
+  <div id="scene-result" class="scene fade-in">
+    <div style="font-size:1rem;color:var(--text-dim);font-weight:600;">결과 화면</div>
+    <div id="result-rank">S</div>
+    <div id="new-record-badge">🏆 NEW RECORD!</div>
+    <div id="result-card">
+      <div class="result-row"><span class="result-label">최종 점수</span><span class="result-val" id="r-score">0</span>
+      </div>
+      <div class="result-row"><span class="result-label">최대 콤보</span><span class="result-val" id="r-combo">0</span>
+      </div>
+      <hr style="border-color:var(--border);margin:10px 0;">
+      <div class="result-row"><span class="result-label">PERFECT</span><span class="result-val" style="color:#2e7d32;"
+          id="r-p">0</span></div>
+      <div class="result-row"><span class="result-label">GREAT</span><span class="result-val" style="color:#1565c0;"
+          id="r-g">0</span></div>
+      <div class="result-row"><span class="result-label">GOOD</span><span class="result-val" style="color:#e65100;"
+          id="r-ok">0</span></div>
+      <div class="result-row"><span class="result-label">MISS</span><span class="result-val" style="color:#c62828;"
+          id="r-m">0</span></div>
+    </div>
+    <div class="result-btn-row">
+      <button class="result-btn" onclick="restartGame()">↺ 다시하기</button>
+      <button class="result-btn primary" onclick="goScene('select')">🎮 선택으로</button>
+      <button class="result-btn" onclick="goScene('main')">🏠 메인</button>
+    </div>
+  </div>
+
+  <!-- ===== GAME OVER ===== -->
+  <div id="scene-gameover" class="scene fade-in">
+    <div id="go-title">GAME OVER</div>
+    <div style="color:var(--text-dim);">HP가 0이 되었습니다</div>
+    <div id="go-stats" style="text-align:center;color:var(--text-dim);font-size:.88rem;"></div>
+    <div class="go-btn-row">
+      <button class="result-btn" onclick="restartGame()">↺ 다시하기</button>
+      <button class="result-btn primary" onclick="goScene('select')">🎮 선택으로</button>
+      <button class="result-btn" onclick="goScene('main')">🏠 메인</button>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // SCENE MANAGER
+    // ============================================================
+    const scenes = {};
+    document.querySelectorAll('.scene').forEach(el => {
+      scenes[el.id.replace('scene-', '')] = el;
+    });
+    let currentScene = 'main';
+
+    function goScene(name) {
+      if (currentScene === 'game') stopGame();
+      if (currentScene === 'ph-game') PH.stop();
+      if (currentScene === 'cell-defense' || currentScene === 'cell-sniper') CELL.stop();
+      Object.values(scenes).forEach(s => s.classList.remove('active'));
+      const el = scenes[name];
+      if (el) {
+        el.classList.add('active');
+        el.classList.remove('fade-in');
+        void el.offsetWidth;
+        el.classList.add('fade-in');
+      }
+      currentScene = name;
+      if (name === 'select') initSelectScene();
+      if (name === 'main') initMainMenu();
+      if (name === 'ph-select') PH.initSelectScreen();
+      if (name === 'cell-select') CELL.initSelectScreen();
+    }
+
+    // ============================================================
+    // GAME REGISTRY  (add new games here)
+    // ============================================================
+    const GAMES = [
+      { id: 'dna-rhythm', name: 'DNA 리듬게임', icon: '🧬', desc: '상보적 염기를 타이밍에 맞춰 입력하세요!', unlocked: true, action: () => goScene('select') },
+      { id: 'cell-organelle', name: '세포 소기관 방어', icon: '🔬', desc: '세포막 투과성 원리로 세포를 지키세요!', unlocked: true, action: () => goScene('cell-select') },
+      { id: 'ph-balance', name: '중화 반응 밸런싱', icon: '⚗️', desc: '산과 염기를 중화하여 pH 7을 유지하세요!', unlocked: true, action: () => goScene('ph-select') },
+      { id: 'protein-fold', name: '단백질 접기', icon: '🔗', desc: '아미노산 서열을 접어 단백질을 완성하세요.', unlocked: false },
+    ];
+
+    function initMainMenu() {
+      const grid = document.getElementById('game-grid');
+      grid.innerHTML = '';
+      GAMES.forEach(g => {
+        const div = document.createElement('div');
+        div.className = 'game-card' + (g.unlocked ? '' : ' locked');
+        div.innerHTML = `
+      <div class="card-icon">${g.icon}</div>
+      <div class="card-name">${g.name}</div>
+      <div class="card-desc">${g.desc}</div>
+      <div class="card-badge ${g.unlocked ? 'badge-ready' : 'badge-soon'}">${g.unlocked ? 'PLAY' : '준비중'}</div>`;
+        if (g.unlocked && g.action) div.addEventListener('click', g.action);
+        grid.appendChild(div);
+      });
+    }
+
+    // ============================================================
+    // SONGS
+    // ============================================================
+    const SONGS = [
+      { id: 1, name: 'Adenine Dreams', bpm: 128, diff: 2 },
+      { id: 2, name: 'Double Helix', bpm: 160, diff: 3 },
+      { id: 3, name: 'Cytosine Rush', bpm: 180, diff: 4 },
+      { id: 4, name: 'Guanine Groove', bpm: 140, diff: 3 },
+      { id: 5, name: 'Replication', bpm: 200, diff: 5 },
+    ];
+    let selectedSongId = 1;
+
+    // ============================================================
+    // SKINS
+    // ============================================================
+    const SKINS = {
+      classic: { name: '클래식', A: '#1565c0', T: '#c62828', C: '#2e7d32', G: '#e65100' },
+      pastel: { name: '파스텔', A: '#5c85d6', T: '#d45c5c', C: '#5cb87a', G: '#d6935c' },
+      neon: { name: '네온', A: '#0033dd', T: '#dd0022', C: '#009933', G: '#dd6600' },
+    };
+    let currentSkin = 'classic';
+
+    function applyTheme() {
+      const s = SKINS[currentSkin];
+      ['A', 'T', 'C', 'G'].forEach(b => document.documentElement.style.setProperty('--' + b, s[b]));
+    }
+
+    // ============================================================
+    // SPEED
+    // ============================================================
+    const SPEEDS = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
+    let currentSpeed = 2.0;
+
+    // ============================================================
+    // KEY PRESETS
+    // ============================================================
+    // keyHitBase[key] = which base note does pressing this key hit?
+    const PRESETS = {
+      bio: {
+        name: '생명과학 모드',
+        desc: '상보적 염기를 직접 알파벳으로 입력',
+        keyHitBase: { t: 'A', a: 'T', g: 'C', c: 'G' },
+        display: [
+          { key: 'A', role: 'A 입력 → T 노트 히트', hits: 'T' },
+          { key: 'T', role: 'T 입력 → A 노트 히트', hits: 'A' },
+          { key: 'C', role: 'C 입력 → G 노트 히트', hits: 'G' },
+          { key: 'G', role: 'G 입력 → C 노트 히트', hits: 'C' },
+        ]
+      },
+      rhythm: {
+        name: '리듬 모드',
+        desc: 'A·S·K·L 4키 포지션으로 플레이',
+        keyHitBase: { a: 'A', s: 'T', k: 'C', l: 'G' },
+        display: [
+          { key: 'A', role: 'A 담당', hits: 'A' },
+          { key: 'S', role: 'T 담당', hits: 'T' },
+          { key: 'K', role: 'C 담당', hits: 'C' },
+          { key: 'L', role: 'G 담당', hits: 'G' },
+        ]
+      }
+    };
+    let currentPreset = 'bio';
+
+    function renderPresetTable() {
+      const preset = PRESETS[currentPreset];
+      const skin = SKINS[currentSkin];
+      const rows = preset.display.map(d => `
+    <tr>
+      <td><span class="key-cap">${d.key}</span></td>
+      <td style="font-size:.8rem;color:var(--text-dim);">${d.role}</td>
+      <td style="color:${skin[d.hits]};font-weight:700;font-size:1rem;">${d.hits}</td>
+    </tr>`).join('');
+      document.getElementById('preset-table-wrap').innerHTML = `
+    <p style="font-size:.78rem;color:var(--text-dim);margin-bottom:8px;">${preset.desc}</p>
+    <table class="key-table">
+      <tr><th>키</th><th>역할</th><th>담당 염기</th></tr>
+      ${rows}
+    </table>`;
+    }
+
+    // ============================================================
+    // SELECT SCENE
+    // ============================================================
+    function initSelectScene() {
+      // Song list
+      const sl = document.getElementById('song-list');
+      sl.innerHTML = '';
+      SONGS.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'song-card' + (s.id === selectedSongId ? ' selected' : '');
+        div.innerHTML = `
+      <div class="song-num">${s.id}</div>
+      <div class="song-info">
+        <h3>${s.name}</h3>
+        <p>BPM ${s.bpm} &nbsp;|&nbsp; <span class="song-diff">${'★'.repeat(s.diff)}${'☆'.repeat(5 - s.diff)}</span></p>
+      </div>`;
+        div.addEventListener('click', () => {
+          selectedSongId = s.id;
+          sl.querySelectorAll('.song-card').forEach(c => c.classList.remove('selected'));
+          div.classList.add('selected');
+        });
+        sl.appendChild(div);
+      });
+
+      // Preset buttons
+      const pb = document.getElementById('preset-btns');
+      pb.innerHTML = '';
+      Object.entries(PRESETS).forEach(([key, p]) => {
+        const b = document.createElement('button');
+        b.className = 'preset-btn' + (key === currentPreset ? ' active' : '');
+        b.textContent = p.name;
+        b.addEventListener('click', () => {
+          currentPreset = key;
+          pb.querySelectorAll('.preset-btn').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
+          renderPresetTable();
+        });
+        pb.appendChild(b);
+      });
+      renderPresetTable();
+
+      // Speed buttons
+      const sb = document.getElementById('speed-btns');
+      sb.innerHTML = '';
+      SPEEDS.forEach(sp => {
+        const b = document.createElement('button');
+        b.className = 'speed-btn' + (sp === currentSpeed ? ' active' : '');
+        b.textContent = sp.toFixed(1) + 'x';
+        b.addEventListener('click', () => {
+          currentSpeed = sp;
+          sb.querySelectorAll('.speed-btn').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
+        });
+        sb.appendChild(b);
+      });
+
+      // Skin buttons
+      const skinB = document.getElementById('skin-btns');
+      skinB.innerHTML = '';
+      Object.entries(SKINS).forEach(([key, sk]) => {
+        const b = document.createElement('button');
+        b.className = 'skin-btn' + (key === currentSkin ? ' active' : '');
+        b.textContent = sk.name;
+        b.style.background = `linear-gradient(135deg,${sk.A},${sk.T})`;
+        b.addEventListener('click', () => {
+          currentSkin = key;
+          applyTheme();
+          skinB.querySelectorAll('.skin-btn').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
+          renderPresetTable();
+        });
+        skinB.appendChild(b);
+      });
+
+      const rec = localStorage.getItem('dna_infinite_best') || '0';
+      document.getElementById('infinite-record').textContent = `최고 기록: ${parseInt(rec).toLocaleString()}점`;
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', ['song', 'infinite', 'settings'][i] === name);
+      });
+      document.querySelectorAll('.tab-panel').forEach(p => {
+        p.classList.toggle('active', p.id === 'tab-' + name);
+      });
+    }
+
+    // ============================================================
+    // GAME ENGINE
+    // ============================================================
+    const BASES = ['A', 'T', 'C', 'G'];
+    const COMPLEMENTS = { A: 'T', T: 'A', C: 'G', G: 'C' };
+    const JUDGE_WIN = { PERFECT: 65, GREAT: 125, GOOD: 205 };
+    const JUDGE_SCORE = { PERFECT: 300, GREAT: 200, GOOD: 100, MISS: 0 };
+    const JUDGE_HP = { PERFECT: 2, GREAT: 0, GOOD: -3, MISS: -10 };
+    const JUDGE_COLOR = { PERFECT: '#2e7d32', GREAT: '#1565c0', GOOD: '#e65100', MISS: '#c62828' };
+
+    let gameState = null;
+    let gameAnimId = null;
+    let dnaAnimId = null;
+    let noteIdCounter = 0;
+    let dnaScroll = 0;
+
+    function buildNoteSequence(song) {
+      const bpm = song ? song.bpm : 140;
+      const iv = 60000 / bpm;
+      const notes = [];
+      let t = 500;
+      while (t < 62000) {
+        notes.push({ time: t, base: BASES[Math.floor(Math.random() * 4)], id: noteIdCounter++ });
+        if (Math.random() < .28) {
+          notes.push({ time: t + iv * .5, base: BASES[Math.floor(Math.random() * 4)], id: noteIdCounter++ });
+        }
+        t += iv * (Math.random() < .25 ? .5 : 1);
+      }
+      return notes.sort((a, b) => a.time - b.time);
+    }
+
+    // ---- COUNTDOWN ----
+    function runCountdown(onDone) {
+      const overlay = document.getElementById('countdown-overlay');
+      const numEl = document.getElementById('countdown-num');
+      const subEl = document.getElementById('countdown-sub');
+      overlay.style.display = 'flex';
+      let count = 3;
+
+      function tick() {
+        numEl.style.animation = 'none';
+        void numEl.offsetWidth;
+        if (count > 0) {
+          numEl.textContent = count;
+          numEl.style.fontSize = '9rem';
+          numEl.style.webkitTextFillColor = 'transparent';
+          numEl.style.animation = 'countPop .88s ease forwards';
+          subEl.textContent = '준비하세요...';
+          count--;
+          setTimeout(tick, 920);
+        } else {
+          numEl.textContent = 'START!';
+          numEl.style.fontSize = '4.5rem';
+          numEl.style.webkitTextFillColor = 'transparent';
+          numEl.style.animation = 'none';
+          void numEl.offsetWidth;
+          numEl.style.animation = 'startPop .4s ease forwards';
+          subEl.textContent = '';
+          setTimeout(() => {
+            overlay.style.display = 'none';
+            onDone();
+          }, 500);
+        }
+      }
+      tick();
+    }
+
+    // ---- START GAME ----
+    function startGame(mode) {
+      applyTheme();
+      const song = SONGS.find(s => s.id === selectedSongId) || SONGS[0];
+      const isInfinite = mode === 'infinite';
+
+      gameState = {
+        mode: isInfinite ? 'infinite' : 'song',
+        song, speed: currentSpeed, preset: currentPreset,
+        hp: 100, score: 0, combo: 0, maxCombo: 0,
+        counts: { PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0 },
+        paused: false, countdown: true,
+        startTime: null, elapsed: 0, lastFrameTime: null,
+        notes: isInfinite ? [] : buildNoteSequence(song),
+        activeNotes: [],
+        noteQueue: 0,
+        judgeLineTop: 0,
+        nextInfiniteNote: 500,
+        done: false,
+        songDuration: 62000,
+      };
+
+      goScene('game');
+      setupGameUI();
+      updateHUD();
+
+      dnaScroll = 0;
+      startDnaCanvas();
+
+      runCountdown(() => {
+        if (!gameState) return;
+        gameState.countdown = false;
+        gameAnimId = requestAnimationFrame(gameLoop);
+      });
+    }
+
+    function setupGameUI() {
+      const gc = document.getElementById('game-center');
+      const rect = gc.getBoundingClientRect();
+      const judgeOffset = rect.height - 100;
+      gameState.judgeLineTop = judgeOffset;
+
+      document.getElementById('judge-line').style.top = judgeOffset + 'px';
+      document.getElementById('song-title-disp').textContent =
+        gameState.mode === 'infinite' ? '무한 모드' : gameState.song.name;
+      document.getElementById('bpm-disp').textContent = gameState.song.bpm;
+
+      buildKeyRow();
+    }
+
+    function buildKeyRow() {
+      const krow = document.getElementById('key-row');
+      const preset = PRESETS[currentPreset];
+      const skin = SKINS[currentSkin];
+      krow.innerHTML = '';
+
+      preset.display.forEach(d => {
+        const wrap = document.createElement('div');
+        wrap.className = 'key-ind-wrap';
+
+        const ki = document.createElement('div');
+        ki.className = 'key-ind';
+        ki.id = 'keyind-' + d.hits;
+        ki.textContent = d.key;
+        ki.style.cssText = `color:${skin[d.hits]};border-color:${skin[d.hits]}55;background:${skin[d.hits]}15;`;
+
+        const lbl = document.createElement('div');
+        lbl.className = 'key-label-small';
+        lbl.textContent = d.hits;
+        lbl.style.color = skin[d.hits];
+
+        wrap.appendChild(ki);
+        wrap.appendChild(lbl);
+        krow.appendChild(wrap);
+      });
+    }
+
+    // ---- DNA CANVAS ANIMATION ----
+    function startDnaCanvas() {
+      if (dnaAnimId) cancelAnimationFrame(dnaAnimId);
+      const canvas = document.getElementById('dna-canvas');
+      const ctx = canvas.getContext('2d');
+      let lastTs = null;
+
+      function drawFrame(ts) {
+        if (currentScene !== 'game') { dnaAnimId = null; return; }
+        const dt = lastTs ? ts - lastTs : 0;
+        lastTs = ts;
+
+        if (gameState && !gameState.paused && !gameState.countdown) {
+          dnaScroll += dt * 0.055 * (gameState.speed || 2);
+        }
+
+        // Resize canvas to match CSS size
+        const W = canvas.offsetWidth, H = canvas.offsetHeight;
+        if (canvas.width !== W) canvas.width = W;
+        if (canvas.height !== H) canvas.height = H;
+        ctx.clearRect(0, 0, W, H);
+
+        const cx = W / 2;
+        const amp = 52;       // horizontal oscillation amplitude
+        const wl = 130;      // pixels per wavelength
+
+        // Faint background rung guides
+        ctx.strokeStyle = 'rgba(0,0,0,.055)';
+        ctx.lineWidth = 1.2;
+        for (let y = -(dnaScroll % (wl / 2)); y < H + wl; y += wl / 2) {
+          const ph = (y + dnaScroll) / wl * Math.PI * 2;
+          const lx = cx + amp * Math.sin(ph);
+          const rx = cx + amp * Math.sin(ph + Math.PI);
+          ctx.beginPath();
+          ctx.moveTo(lx, y);
+          ctx.lineTo(rx, y);
+          ctx.stroke();
+        }
+
+        // Left backbone (blue)
+        ctx.beginPath();
+        ctx.lineWidth = 5.5;
+        ctx.strokeStyle = 'rgba(21,101,192,.32)';
+        ctx.lineJoin = 'round';
+        for (let y = 0; y <= H; y += 3) {
+          const x = cx + amp * Math.sin((y + dnaScroll) / wl * Math.PI * 2);
+          y === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Right backbone (red)
+        ctx.beginPath();
+        ctx.lineWidth = 5.5;
+        ctx.strokeStyle = 'rgba(198,40,40,.32)';
+        for (let y = 0; y <= H; y += 3) {
+          const x = cx + amp * Math.sin((y + dnaScroll) / wl * Math.PI * 2 + Math.PI);
+          y === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Phosphate dots
+        const dotStep = wl / 2;
+        for (let y = -(dnaScroll % dotStep); y < H + 20; y += dotStep) {
+          const ph = (y + dnaScroll) / wl * Math.PI * 2;
+          const lx = cx + amp * Math.sin(ph);
+          const rx = cx + amp * Math.sin(ph + Math.PI);
+
+          ctx.beginPath();
+          ctx.arc(lx, y, 6.5, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(21,101,192,.45)';
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(rx, y, 6.5, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(198,40,40,.45)';
+          ctx.fill();
+        }
+
+        dnaAnimId = requestAnimationFrame(drawFrame);
+      }
+      dnaAnimId = requestAnimationFrame(drawFrame);
+    }
+
+    // ---- GAME LOOP ----
+    function gameLoop(ts) {
+      if (!gameState || gameState.done || gameState.countdown) return;
+      if (gameState.paused) { gameAnimId = requestAnimationFrame(gameLoop); return; }
+
+      if (!gameState.startTime) gameState.startTime = ts;
+      gameState.lastFrameTime = ts;
+      gameState.elapsed = ts - gameState.startTime;
+
+      spawnNotes();
+      moveNotes();
+      checkMissedNotes();
+
+      if (gameState.mode === 'song'
+        && gameState.elapsed > gameState.songDuration
+        && gameState.activeNotes.length === 0
+        && gameState.noteQueue >= gameState.notes.length) {
+        endGame(false); return;
+      }
+
+      gameAnimId = requestAnimationFrame(gameLoop);
+    }
+
+    function travelTime() { return 2000 / gameState.speed; }
+
+    function spawnNotes() {
+      const gs = gameState;
+      if (gs.mode === 'song') {
+        while (gs.noteQueue < gs.notes.length
+          && gs.notes[gs.noteQueue].time <= gs.elapsed + travelTime()) {
+          const nd = gs.notes[gs.noteQueue++];
+          spawnNote(nd.base, nd.id, nd.time);
+        }
+      } else {
+        while (gs.elapsed + travelTime() >= gs.nextInfiniteNote) {
+          spawnNote(BASES[Math.floor(Math.random() * 4)], noteIdCounter++, gs.nextInfiniteNote);
+          const iv = 60000 / (gs.song.bpm || 140);
+          gs.nextInfiniteNote += iv * (Math.random() < .25 ? .5 : 1);
+        }
+      }
+    }
+
+    function spawnNote(base, id, noteTime) {
+      const skin = SKINS[currentSkin];
+      const el = document.createElement('div');
+      el.className = 'note-rung';
+
+      const leftH = document.createElement('div');
+      leftH.className = 'note-half left';
+      leftH.textContent = base;
+      leftH.style.background = skin[base];
+
+      const rightH = document.createElement('div');
+      rightH.className = 'note-half right';
+      rightH.textContent = '?';
+      rightH.style.background = skin[base] + 'bb';
+
+      el.appendChild(leftH);
+      el.appendChild(rightH);
+      el.style.top = '-60px';
+
+      document.getElementById('game-center').appendChild(el);
+      gameState.activeNotes.push({ id, base, el, noteTime, y: -60, hit: false, missed: false });
+    }
+
+    function moveNotes() {
+      const gs = gameState;
+      const ttl = travelTime();
+      gs.activeNotes.forEach(n => {
+        if (n.hit || n.missed) return;
+        const frac = (gs.elapsed - n.noteTime + ttl) / ttl;
+        n.y = frac * gs.judgeLineTop - 26;
+        n.el.style.top = n.y + 'px';
+      });
+    }
+
+    function checkMissedNotes() {
+      const gs = gameState;
+      gs.activeNotes.forEach(n => {
+        if (n.hit || n.missed) return;
+        if (n.y > gs.judgeLineTop + 72) {
+          n.missed = true;
+          n.el.remove();
+          registerJudge('MISS');
+        }
+      });
+      gs.activeNotes = gs.activeNotes.filter(n => !n.hit && !n.missed);
+    }
+
+    // ---- INPUT ----
+    function onKeyDown(e) {
+      if (!gameState || gameState.done || gameState.paused || gameState.countdown) return;
+      const key = e.key.toLowerCase();
+      const preset = PRESETS[gameState.preset];
+      const hitBase = preset.keyHitBase[key];
+      if (!hitBase) return;
+      e.preventDefault();
+
+      const ki = document.getElementById('keyind-' + hitBase);
+      if (ki) { ki.classList.add('pressed'); setTimeout(() => ki.classList.remove('pressed'), 80); }
+
+      const gs = gameState;
+      let best = null, bestDist = Infinity;
+      gs.activeNotes.forEach(n => {
+        if (n.hit || n.missed || n.base !== hitBase) return;
+        const dist = Math.abs(n.y + 26 - gs.judgeLineTop);
+        if (dist < bestDist) { bestDist = dist; best = n; }
+      });
+      if (!best) return;
+
+      let judge;
+      if (bestDist <= JUDGE_WIN.PERFECT) judge = 'PERFECT';
+      else if (bestDist <= JUDGE_WIN.GREAT) judge = 'GREAT';
+      else if (bestDist <= JUDGE_WIN.GOOD) judge = 'GOOD';
+      else return;
+
+      // Reveal complement on right half
+      const rightH = best.el.querySelector('.note-half.right');
+      if (rightH) {
+        rightH.textContent = COMPLEMENTS[best.base];
+        rightH.style.background = SKINS[currentSkin][COMPLEMENTS[best.base]];
+        rightH.style.opacity = '1';
+      }
+      best.hit = true;
+      setTimeout(() => {
+        best.el.style.transition = 'transform .12s, opacity .12s';
+        best.el.style.transform = 'scaleX(1.15)';
+        best.el.style.opacity = '0';
+        setTimeout(() => best.el.remove(), 130);
+      }, 0);
+
+      registerJudge(judge);
+    }
+
+    function registerJudge(judge) {
+      const gs = gameState;
+      gs.counts[judge]++;
+      if (judge === 'MISS') {
+        gs.combo = 0;
+      } else {
+        gs.combo++;
+        if (gs.combo > gs.maxCombo) gs.maxCombo = gs.combo;
+      }
+      gs.score += JUDGE_SCORE[judge] * (1 + Math.floor(gs.combo / 10) * 0.1);
+      gs.hp = Math.max(0, Math.min(100, gs.hp + JUDGE_HP[judge]));
+      showJudgeText(judge);
+      updateHUD();
+      if (gs.hp <= 0) endGame(true);
+    }
+
+    function showJudgeText(judge) {
+      const el = document.getElementById('judge-text');
+      el.textContent = judge;
+      el.style.color = JUDGE_COLOR[judge];
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = 'judgeAnim .5s forwards';
+    }
+
+    function updateHUD() {
+      const gs = gameState;
+      document.getElementById('hp-val').textContent = Math.ceil(gs.hp);
+      const bar = document.getElementById('hp-bar');
+      bar.style.height = gs.hp + '%';
+      bar.style.background = gs.hp > 60 ? 'var(--hp-high)' : gs.hp > 30 ? 'var(--hp-mid)' : 'var(--hp-low)';
+      document.getElementById('score-val').textContent = Math.floor(gs.score).toLocaleString();
+      document.getElementById('combo-val').textContent = gs.combo;
+      document.getElementById('max-combo-val').textContent = gs.maxCombo;
+      document.getElementById('cnt-p').textContent = gs.counts.PERFECT;
+      document.getElementById('cnt-g').textContent = gs.counts.GREAT;
+      document.getElementById('cnt-ok').textContent = gs.counts.GOOD;
+      document.getElementById('cnt-m').textContent = gs.counts.MISS;
+    }
+
+    function togglePause() {
+      if (!gameState) return;
+      gameState.paused = !gameState.paused;
+      document.getElementById('pause-overlay').style.display = gameState.paused ? 'flex' : 'none';
+      if (!gameState.paused) gameState.lastFrameTime = null;
+    }
+
+    function stopGame() {
+      if (dnaAnimId) { cancelAnimationFrame(dnaAnimId); dnaAnimId = null; }
+      if (gameAnimId) { cancelAnimationFrame(gameAnimId); gameAnimId = null; }
+      document.querySelectorAll('.note-rung').forEach(el => el.remove());
+      gameState = null;
+    }
+
+    function restartGame() {
+      const mode = gameState ? gameState.mode : 'song';
+      stopGame();
+      startGame(mode);
+    }
+
+    function endGame(isGameOver) {
+      const gs = gameState;
+      gs.done = true;
+      if (gameAnimId) { cancelAnimationFrame(gameAnimId); gameAnimId = null; }
+
+      if (gs.mode === 'infinite') {
+        const prev = parseInt(localStorage.getItem('dna_infinite_best') || '0');
+        if (gs.score > prev) localStorage.setItem('dna_infinite_best', Math.floor(gs.score));
+      }
+
+      if (isGameOver) {
+        document.getElementById('go-stats').innerHTML =
+          `점수: ${Math.floor(gs.score).toLocaleString()} &nbsp;|&nbsp; 최대 콤보: ${gs.maxCombo}`;
+        goScene('gameover');
+      } else {
+        showResult();
+      }
+    }
+
+    function showResult() {
+      const gs = gameState;
+      const total = gs.counts.PERFECT + gs.counts.GREAT + gs.counts.GOOD + gs.counts.MISS;
+      const acc = total ? (gs.counts.PERFECT + gs.counts.GREAT * .8 + gs.counts.GOOD * .5) / total : 0;
+      const rank = acc >= .95 ? 'S' : acc >= .85 ? 'A' : acc >= .70 ? 'B' : acc >= .50 ? 'C' : 'D';
+
+      document.getElementById('result-rank').textContent = rank;
+      document.getElementById('r-score').textContent = Math.floor(gs.score).toLocaleString();
+      document.getElementById('r-combo').textContent = gs.maxCombo;
+      document.getElementById('r-p').textContent = gs.counts.PERFECT;
+      document.getElementById('r-g').textContent = gs.counts.GREAT;
+      document.getElementById('r-ok').textContent = gs.counts.GOOD;
+      document.getElementById('r-m').textContent = gs.counts.MISS;
+
+      const key = `dna_best_${gs.mode === 'infinite' ? 'inf' : gs.song.id}`;
+      const prev = parseInt(localStorage.getItem(key) || '0');
+      const badge = document.getElementById('new-record-badge');
+      if (gs.score > prev) {
+        localStorage.setItem(key, Math.floor(gs.score));
+        badge.style.display = 'block';
+      } else {
+        badge.style.display = 'none';
+      }
+      goScene('result');
+    }
+
+    // ============================================================
+    // KEY LISTENER
+    // ============================================================
+    document.addEventListener('keydown', e => {
+      if (currentScene === 'game') {
+        if (e.key === 'Escape') togglePause();
+        else onKeyDown(e);
+      } else if (currentScene === 'ph-game') {
+        if (e.key === 'Escape') PH.togglePause();
+        else PH.onKey(e);
+      } else if (currentScene === 'cell-defense') {
+        CELL.onKey(e);
+      } else if (currentScene === 'cell-sniper') {
+        if (e.key === 'Escape') CELL.toggleSniperPause();
+      }
+    });
+
+    // ============================================================
+    // PH GAME — Neutralization Reaction Balancing (v2)
+    // ============================================================
+    const PH = (() => {
+      // ---- Substances (mixed, all teal on belt) ----
+      const ALL_SUBS = [
+        { formula: 'HCl', name: '염산', strength: 3, delta: -2.5, type: 'acid' },
+        { formula: 'H₂SO₄', name: '황산', strength: 3, delta: -3.0, type: 'acid' },
+        { formula: 'CH₃COOH', name: '아세트산', strength: 1, delta: -0.5, type: 'acid' },
+        { formula: 'HF', name: '플루오린화수소', strength: 2, delta: -1.2, type: 'acid' },
+        { formula: 'NaOH', name: '수산화나트륨', strength: 3, delta: +2.5, type: 'base' },
+        { formula: 'Ca(OH)₂', name: '수산화칼슘', strength: 3, delta: +3.0, type: 'base' },
+        { formula: 'NH₃', name: '암모니아', strength: 1, delta: +0.5, type: 'base' },
+        { formula: 'NaHCO₃', name: '탄산수소나트륨', strength: 2, delta: +1.2, type: 'base' },
+      ];
+      const ITEM_COLOR = '#00796b';
+
+      // ---- Gas environments ----
+      const GASES = [
+        { formula: 'CO₂', name: '이산화탄소', delta: -0.10, type: 'weak-acid',  icon: '🌫️' },
+        { formula: 'SO₂', name: '이산화황',   delta: -0.30, type: 'strong-acid', icon: '💨' },
+        { formula: 'HCl', name: '염화수소',   delta: -0.30, type: 'strong-acid', icon: '☁️' },
+        { formula: 'NO₂', name: '이산화질소', delta: -0.30, type: 'strong-acid', icon: '🟠' },
+        { formula: 'NH₃', name: '암모니아',   delta: +0.10, type: 'weak-base',   icon: '💙' },
+      ];
+
+      // ---- Difficulty ----
+      const DIFF_CFG = {
+        easy:   { beltSpeed: 105, spawnMinMs: 3500, spawnMaxMs: 5500, strongChance: 0,   driftSpeed: 0.05 },
+        normal: { beltSpeed: 260, spawnMinMs: 2000, spawnMaxMs: 3500, strongChance: 0.3, driftSpeed: 0.10 },
+        hard:   { beltSpeed: 475, spawnMinMs: 1100, spawnMaxMs: 2000, strongChance: 0.6, driftSpeed: 0.15 },
+      };
+      const ZONE_PX = 130;
+
+      let gs = null;
+      let phAnimId = null;
+      let phItemId = 0;
+
+      // ---- pH helpers ----
+      function phColor(pH) {
+        if (pH <= 2) return '#b71c1c';
+        if (pH <= 4) return '#e53935';
+        if (pH <= 6) return '#ff7043';
+        if (pH < 6.5) return '#ffa726';
+        if (pH <= 7.5) return '#66bb6a';
+        if (pH < 9) return '#42a5f5';
+        if (pH < 11) return '#1e88e5';
+        return '#0d47a1';
+      }
+      function clampPH(v) { return Math.max(0.1, Math.min(13.9, v)); }
+      function phJudgeColor(j) {
+        return { PERFECT: '#2e7d32', GOOD: '#e65100', OK: '#1565c0', MISS: '#c62828' }[j] || '#c62828';
+      }
+
+      // ---- Public: initSelectScreen ----
+      function initSelectScreen() {
+        ['easy', 'normal', 'hard'].forEach(d => {
+          const el = document.getElementById('ph-best-' + d);
+          const v = localStorage.getItem('ph_best_' + d);
+          if (el) el.textContent = v ? parseInt(v).toLocaleString() + '점' : '—';
+        });
+      }
+
+      // ---- Public: start ----
+      function start(diff) {
+        const cfg = DIFF_CFG[diff];
+        gs = {
+          diff, pH: 7.0, hp: 100, score: 0,
+          elapsed: 0, lastFrameTime: null,
+          leftItems: [], rightItems: [],
+          consec: { type: null, count: 0 },
+          judgeCounts: { PERFECT: 0, GOOD: 0, OK: 0, MISS: 0 },
+          totalJudges: 0,
+          nextScoreMs: 3000,
+          nextSpawnLeft: 600,
+          nextSpawnRight: 1400,
+          baseBeltSpeed: cfg.beltSpeed,
+          beltSpeed: cfg.beltSpeed,
+          spawnMinMs: cfg.spawnMinMs,
+          spawnMaxMs: cfg.spawnMaxMs,
+          strongChance: cfg.strongChance,
+          leftBeltW: 0, rightBeltW: 0,
+          paused: false, done: false,
+          // Gas
+          currentGas: GASES[Math.floor(Math.random() * GASES.length)],
+          nextGasChangeMs: 20000 + Math.random() * 20000,
+          nextGasDrainMs: 2000,
+          gasTotalDur: 20000 + Math.random() * 20000,
+          gasStartMs: 0,
+          // pH Drift
+          driftDir: Math.random() < 0.5 ? -1 : 1,
+          driftSpeed: cfg.driftSpeed,
+          nextDriftMs: 1000,
+          driftRevMin: diff === 'hard' ? 10000 : 20000,
+          driftRevMax: diff === 'hard' ? 20000 : 35000,
+          nextDriftReverseMs: diff === 'hard' ? 10000 + Math.random() * 10000 : 20000 + Math.random() * 15000,
+          // Scientist
+          scientistActive: false,
+          nextScientistMs: 30000 + Math.random() * 30000,
+          scientistSub: null,
+          scientistIsBad: false,
+          scientistTimeoutId: null,
+          // Speed-up
+          nextSpeedUpMs: 60000,
+        };
+        const dur = (44 / cfg.beltSpeed).toFixed(2) + 's';
+        document.documentElement.style.setProperty('--ph-belt-dur', dur);
+
+        goScene('ph-game');
+        updateGasBar(null, gs.currentGas);
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            gs.leftBeltW = document.getElementById('ph-left-belt').offsetWidth;
+            gs.rightBeltW = document.getElementById('ph-right-belt').offsetWidth;
+            updatePhHUD();
+            if (!localStorage.getItem('ph_tutorial_seen')) {
+              document.getElementById('ph-tutorial-overlay').style.display = 'flex';
+            } else {
+              phAnimId = requestAnimationFrame(phLoop);
+            }
+          });
+        });
+      }
+
+      // ---- Public: stop ----
+      function stop() {
+        if (phAnimId) { cancelAnimationFrame(phAnimId); phAnimId = null; }
+        if (gs && gs.scientistTimeoutId) clearTimeout(gs.scientistTimeoutId);
+        document.querySelectorAll('.ph-item').forEach(el => el.remove());
+        hideSci(true);
+        gs = null;
+      }
+
+      // ---- Public: restart ----
+      function restart() {
+        const diff = gs ? gs.diff : 'normal';
+        stop();
+        start(diff);
+      }
+
+      // ---- Public: togglePause ----
+      function togglePause() {
+        if (!gs) return;
+        gs.paused = !gs.paused;
+        document.getElementById('ph-pause-overlay').style.display = gs.paused ? 'flex' : 'none';
+        if (!gs.paused) { gs.lastFrameTime = null; phAnimId = requestAnimationFrame(phLoop); }
+      }
+
+      // ---- Public: tutorialDone ----
+      function tutorialDone() {
+        localStorage.setItem('ph_tutorial_seen', '1');
+        document.getElementById('ph-tutorial-overlay').style.display = 'none';
+        if (gs) phAnimId = requestAnimationFrame(phLoop);
+      }
+
+      // ---- Public: onKey ----
+      function onKey(e) {
+        if (!gs || gs.done || gs.paused) return;
+        const k = e.key.toLowerCase();
+        if (k === 'f' || k === ' ') { e.preventDefault(); addFromLeft(); }
+        if (k === 'j') { e.preventDefault(); addFromRight(); }
+      }
+
+      // ---- Main loop ----
+      function phLoop(ts) {
+        if (!gs || gs.done || gs.paused) return;
+        const dt = gs.lastFrameTime ? ts - gs.lastFrameTime : 0;
+        gs.lastFrameTime = ts;
+        gs.elapsed += dt;
+
+        spawnItems();
+        moveItems(dt);
+        checkExtremeHP(dt);
+        checkPeriodicScore();
+        checkGas();
+        checkDrift();
+        checkScientist();
+        checkSpeedUp();
+        updatePhHUD();
+
+        phAnimId = requestAnimationFrame(phLoop);
+      }
+
+      // ---- Spawn items (both belts mixed) ----
+      function pickSub() {
+        let pool = ALL_SUBS;
+        if (Math.random() < gs.strongChance) {
+          const strong = ALL_SUBS.filter(s => s.strength === 3);
+          if (strong.length) pool = strong;
+        }
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+
+      function spawnItems() {
+        if (gs.elapsed >= gs.nextSpawnLeft) {
+          createItem('left', pickSub());
+          gs.nextSpawnLeft = gs.elapsed + gs.spawnMinMs + Math.random() * (gs.spawnMaxMs - gs.spawnMinMs);
+        }
+        if (gs.elapsed >= gs.nextSpawnRight) {
+          createItem('right', pickSub());
+          gs.nextSpawnRight = gs.elapsed + gs.spawnMinMs + Math.random() * (gs.spawnMaxMs - gs.spawnMinMs);
+        }
+      }
+
+      function createItem(side, sub) {
+        const el = document.createElement('div');
+        el.className = 'ph-item';
+        el.style.background = ITEM_COLOR;
+        el.innerHTML = `
+      <div class="ph-item-formula">${sub.formula}</div>
+      <div class="ph-item-name">${sub.name}</div>
+      <div class="ph-item-strength">${'★'.repeat(sub.strength)}${'☆'.repeat(3 - sub.strength)}</div>`;
+        const beltEl = document.getElementById(side === 'left' ? 'ph-left-belt' : 'ph-right-belt');
+        beltEl.appendChild(el);
+
+        const item = { ...sub, id: phItemId++, el, x: -115, inZone: false, side };
+        el.addEventListener('click', () => addItem(item, side));
+        if (side === 'left') gs.leftItems.push(item);
+        else gs.rightItems.push(item);
+      }
+
+      // ---- Move items ----
+      function moveItems(dt) {
+        const spd = gs.beltSpeed * dt / 1000;
+        const LW = gs.leftBeltW, RW = gs.rightBeltW;
+
+        gs.leftItems.forEach(item => {
+          item.x += spd;
+          item.el.style.left = item.x + 'px';
+          const inZ = item.x >= LW - ZONE_PX;
+          if (inZ !== item.inZone) { item.inZone = inZ; item.el.classList.toggle('ph-in-zone', inZ); }
+          if (item.x > LW + 20) { item.el.remove(); item.gone = true; }
+        });
+        gs.leftItems = gs.leftItems.filter(i => !i.gone);
+
+        gs.rightItems.forEach(item => {
+          item.x += spd;
+          item.el.style.right = item.x + 'px';
+          const inZ = item.x >= RW - ZONE_PX;
+          if (inZ !== item.inZone) { item.inZone = inZ; item.el.classList.toggle('ph-in-zone', inZ); }
+          if (item.x > RW + 20) { item.el.remove(); item.gone = true; }
+        });
+        gs.rightItems = gs.rightItems.filter(i => !i.gone);
+      }
+
+      // ---- Add substance ----
+      function addFromLeft() {
+        const inZone = gs.leftItems.filter(i => i.inZone && !i.gone);
+        if (!inZone.length) return;
+        addItem(inZone[inZone.length - 1], 'left');
+      }
+      function addFromRight() {
+        const inZone = gs.rightItems.filter(i => i.inZone && !i.gone);
+        if (!inZone.length) return;
+        addItem(inZone[inZone.length - 1], 'right');
+      }
+
+      function addItem(item, side) {
+        if (!gs || gs.done || gs.paused) return;
+        if (item.gone || !item.el.isConnected) return;
+        item.gone = true;
+        item.el.remove();
+        if (side === 'left') gs.leftItems = gs.leftItems.filter(i => i !== item);
+        else gs.rightItems = gs.rightItems.filter(i => i !== item);
+
+        // Consecutive by TYPE (acid/base), not by side
+        const cs = gs.consec;
+        if (cs.type === item.type) {
+          cs.count++;
+          if (cs.count >= 3) { overflowPenalty(); cs.count = 0; }
+        } else {
+          cs.type = item.type;
+          cs.count = 1;
+        }
+        updateConsecDots();
+
+        gs.pH = clampPH(gs.pH + item.delta);
+        spawnBubbles();
+        updatePhHUD();
+        if (gs.hp <= 0) endGame();
+      }
+
+      function updateConsecDots() {
+        for (let i = 0; i < 3; i++) {
+          const dot = document.getElementById('pcd-' + i);
+          if (!dot) continue;
+          dot.className = 'ph-consec-dot';
+          if (i < gs.consec.count)
+            dot.classList.add(gs.consec.type === 'acid' ? 'active-acid' : 'active-base');
+        }
+      }
+
+      // ---- Overflow penalty ----
+      function overflowPenalty() {
+        gs.hp = Math.max(0, gs.hp - 15);
+        const body = document.getElementById('ph-beaker-body');
+        if (body) { body.classList.remove('ph-overflow-anim'); void body.offsetWidth; body.classList.add('ph-overflow-anim'); }
+        showPhJudge('과잉 투입! -15HP', '#f44336');
+        spawnParticles();
+        if (gs.hp <= 0) endGame();
+      }
+
+      // ---- Periodic score ----
+      function checkPeriodicScore() {
+        if (gs.elapsed < gs.nextScoreMs) return;
+        gs.nextScoreMs += 3000;
+        const d = Math.abs(gs.pH - 7);
+        let judge, pts;
+        if (d <= 0.5) { judge = 'PERFECT'; pts = 100; gs.judgeCounts.PERFECT++; }
+        else if (d <= 1.0) { judge = 'GOOD'; pts = 50; gs.judgeCounts.GOOD++; }
+        else if (d <= 2.0) { judge = 'OK'; pts = 10; gs.judgeCounts.OK++; }
+        else {
+          judge = 'MISS'; pts = 0; gs.judgeCounts.MISS++;
+          gs.hp = Math.max(0, gs.hp - 5);
+        }
+        gs.score += pts;
+        gs.totalJudges++;
+        showPhJudge(judge, phJudgeColor(judge));
+        if (gs.hp <= 0) endGame();
+      }
+
+      // ---- Extreme HP drain ----
+      function checkExtremeHP(dt) {
+        if (gs.pH <= 4 || gs.pH >= 10) {
+          gs.hp = Math.max(0, gs.hp - dt * 0.008);
+          if (gs.hp <= 0) endGame();
+        }
+      }
+
+      // ============================================================
+      // pH DRIFT SYSTEM
+      // ============================================================
+      function checkDrift() {
+        if (gs.elapsed >= gs.nextDriftReverseMs) {
+          gs.driftDir *= -1;
+          gs.nextDriftReverseMs = gs.elapsed + gs.driftRevMin + Math.random() * (gs.driftRevMax - gs.driftRevMin);
+          showPhJudge(gs.driftDir < 0 ? '↓ pH 변동 방향 전환!' : '↑ pH 변동 방향 전환!', '#7b1fa2');
+        }
+        if (gs.elapsed >= gs.nextDriftMs) {
+          gs.nextDriftMs += 1000;
+          gs.pH = clampPH(gs.pH + gs.driftDir * gs.driftSpeed);
+        }
+        const ind = document.getElementById('ph-drift-ind');
+        if (ind) {
+          if (gs.driftDir < 0) {
+            ind.textContent = '↓ 산성화 진행';
+            ind.style.color = '#b71c1c';
+            ind.style.background = 'rgba(183,28,28,.1)';
+          } else {
+            ind.textContent = '↑ 염기화 진행';
+            ind.style.color = '#1565c0';
+            ind.style.background = 'rgba(21,101,192,.1)';
+          }
+        }
+      }
+
+      // ============================================================
+      // GAS SYSTEM
+      // ============================================================
+      function checkGas() {
+        // Gas change
+        if (gs.elapsed >= gs.nextGasChangeMs) {
+          const prev = gs.currentGas;
+          const next = GASES[Math.floor(Math.random() * GASES.length)];
+          gs.currentGas = next;
+          gs.gasTotalDur = 20000 + Math.random() * 20000;
+          gs.gasStartMs = gs.elapsed;
+          gs.nextGasChangeMs = gs.elapsed + gs.gasTotalDur;
+          updateGasBar(prev, next);
+        }
+        // Gas pH effect (every 2s)
+        if (gs.elapsed >= gs.nextGasDrainMs && gs.currentGas && gs.currentGas.delta !== 0) {
+          gs.nextGasDrainMs = gs.elapsed + 2000;
+          gs.pH = clampPH(gs.pH + gs.currentGas.delta);
+        }
+        // Gas timer bar progress
+        const fill = document.getElementById('ph-gas-dur-fill');
+        if (fill && gs.gasTotalDur > 0) {
+          const pct = Math.max(0, 1 - (gs.elapsed - gs.gasStartMs) / gs.gasTotalDur);
+          fill.style.width = (pct * 100).toFixed(1) + '%';
+        }
+      }
+
+      function updateGasBar(prev, curr) {
+        const bar = document.getElementById('ph-gas-bar');
+        if (!bar) return;
+        bar.className = 'ph-gas-' + curr.type;
+        document.getElementById('ph-gas-icon').textContent = curr.icon;
+        document.getElementById('ph-gas-formula').textContent = curr.formula;
+        const eff = curr.delta > 0 ? `${curr.name} ↑pH (+${curr.delta}/2s)`
+          : curr.delta < 0 ? `${curr.name} ↓pH (${curr.delta}/2s)`
+            : `${curr.name} — 중성`;
+        document.getElementById('ph-gas-effect').textContent = eff;
+
+        // Change banner
+        if (prev && prev.formula !== curr.formula) {
+          const banner = document.createElement('div');
+          banner.className = 'ph-gas-change-banner';
+          banner.textContent = `기체 변화! ${prev.formula} → ${curr.formula}`;
+          bar.appendChild(banner);
+          setTimeout(() => banner.remove(), 2000);
+        }
+      }
+
+      // ============================================================
+      // SCIENTIST GIMMICK
+      // ============================================================
+      function checkScientist() {
+        if (gs.scientistActive) return;
+        if (gs.elapsed >= gs.nextScientistMs) {
+          gs.nextScientistMs = gs.elapsed + 30000 + Math.random() * 30000;
+          showScientist();
+        }
+      }
+
+      function showScientist() {
+        gs.scientistActive = true;
+        const isBad = Math.random() < 0.5;
+        let sub;
+        if (isBad) {
+          // Bad: makes pH worse (same direction as current deviation)
+          const wrongType = gs.pH <= 7 ? 'acid' : 'base';
+          const pool = ALL_SUBS.filter(s => s.type === wrongType);
+          sub = pool[Math.floor(Math.random() * pool.length)];
+        } else {
+          // Good: corrects pH
+          const rightType = gs.pH < 7 ? 'base' : 'acid';
+          const pool = ALL_SUBS.filter(s => s.type === rightType);
+          sub = pool.length ? pool[Math.floor(Math.random() * pool.length)]
+            : ALL_SUBS[Math.floor(Math.random() * ALL_SUBS.length)];
+        }
+        gs.scientistSub = sub;
+        gs.scientistIsBad = isBad;
+
+        const textEl = document.getElementById('ph-sci-text');
+        if (textEl) textEl.innerHTML = `<strong>🔬 제안:</strong> <em>${sub.formula}</em> (${sub.name})<br><small>비커에 넣어보는 게 어떨까요?</small>`;
+
+        const btns = document.getElementById('ph-sci-btns');
+        if (btns) btns.style.display = 'flex';
+
+        const wrap = document.getElementById('ph-scientist-wrap');
+        if (wrap) { wrap.style.display = 'flex'; requestAnimationFrame(() => wrap.classList.add('sci-visible')); }
+
+        const fill = document.getElementById('ph-sci-timer-fill');
+        if (fill) {
+          fill.style.transition = 'none'; fill.style.width = '100%';
+          void fill.offsetWidth;
+          fill.style.transition = 'width 3s linear'; fill.style.width = '0%';
+        }
+        gs.scientistTimeoutId = setTimeout(scientistTimeout, 3000);
+      }
+
+      function acceptSci() {
+        if (!gs || !gs.scientistActive) return;
+        clearTimeout(gs.scientistTimeoutId);
+        const sub = gs.scientistSub;
+        const isBad = gs.scientistIsBad;
+        gs.pH = clampPH(gs.pH + sub.delta);
+        spawnBubbles();
+        updatePhHUD();
+
+        const btns = document.getElementById('ph-sci-btns');
+        if (btns) btns.style.display = 'none';
+        const textEl = document.getElementById('ph-sci-text');
+        let reaction;
+        if (isBad) {
+          const svg = document.getElementById('ph-sci-svg');
+          if (svg) { svg.style.animation = 'none'; void svg.offsetWidth; svg.style.animation = 'sciLaugh .3s ease-in-out 4'; }
+          reaction = Math.random() < 0.5
+            ? '😈 장난 친건데 속으면 어쩌나, 하하하!'
+            : '🎭 난 사실 과학자가 아니라네!';
+        } else {
+          reaction = '👍 훌륭한 판단이야!';
+        }
+        if (textEl) textEl.textContent = reaction;
+        setTimeout(() => hideSci(), 2200);
+        if (gs.hp <= 0) endGame();
+      }
+
+      function rejectSci() {
+        if (!gs || !gs.scientistActive) return;
+        clearTimeout(gs.scientistTimeoutId);
+        const isBad = gs.scientistIsBad;
+        const btns = document.getElementById('ph-sci-btns');
+        if (btns) btns.style.display = 'none';
+        const textEl = document.getElementById('ph-sci-text');
+        const reaction = isBad ? '😤 현명한 선택이야!' : '🤔 흠, 자신 있나보군...';
+        if (textEl) textEl.textContent = reaction;
+        setTimeout(() => hideSci(), 1600);
+      }
+
+      function scientistTimeout() {
+        if (!gs || !gs.scientistActive) return;
+        gs.pH = clampPH(gs.pH + gs.scientistSub.delta);
+        gs.hp = Math.max(0, gs.hp - 10);
+        updatePhHUD();
+        const btns = document.getElementById('ph-sci-btns');
+        if (btns) btns.style.display = 'none';
+        const textEl = document.getElementById('ph-sci-text');
+        if (textEl) textEl.textContent = '😏 망설이다 실수했군! -10HP';
+        showPhJudge('망설임 패널티! -10HP', '#f44336');
+        spawnParticles();
+        setTimeout(() => hideSci(), 2200);
+        if (gs.hp <= 0) endGame();
+      }
+
+      function hideSci(immediate) {
+        const wrap = document.getElementById('ph-scientist-wrap');
+        if (!wrap) return;
+        wrap.classList.remove('sci-visible');
+        setTimeout(() => { wrap.style.display = 'none'; }, immediate ? 0 : 600);
+        if (gs) gs.scientistActive = false;
+      }
+
+      // ============================================================
+      // SPEED ACCELERATION
+      // ============================================================
+      function checkSpeedUp() {
+        if (gs.elapsed < gs.nextSpeedUpMs) return;
+        gs.nextSpeedUpMs += 60000;
+        gs.beltSpeed = Math.min(gs.beltSpeed * 1.1, gs.baseBeltSpeed * 4);
+        const dur = (44 / gs.beltSpeed).toFixed(2) + 's';
+        document.documentElement.style.setProperty('--ph-belt-dur', dur);
+        showPhJudge('⚡ 속도 증가!', '#e65100');
+      }
+
+      // ---- Visual updates ----
+      function updatePhHUD() {
+        if (!gs) return;
+        const scoreEl = document.getElementById('ph-score');
+        if (scoreEl) scoreEl.textContent = Math.floor(gs.score).toLocaleString();
+        const timeEl = document.getElementById('ph-time');
+        if (timeEl) timeEl.textContent = Math.floor(gs.elapsed / 1000);
+        const hpV = document.getElementById('ph-hp-val');
+        if (hpV) hpV.textContent = Math.ceil(gs.hp);
+        const hpBar = document.getElementById('ph-hp-bar');
+        if (hpBar) {
+          hpBar.style.width = gs.hp + '%';
+          hpBar.style.background = gs.hp > 60 ? '#2e7d32' : gs.hp > 30 ? '#f9a825' : '#c62828';
+        }
+        const liq = document.getElementById('ph-liquid');
+        if (liq) liq.style.background = phColor(gs.pH);
+        const disp = document.getElementById('ph-ph-display');
+        if (disp) disp.textContent = gs.pH.toFixed(1);
+        const dot = document.getElementById('ph-scale-dot');
+        if (dot) dot.style.left = ((gs.pH / 14) * 100).toFixed(1) + '%';
+      }
+
+      function showPhJudge(text, color) {
+        const el = document.getElementById('ph-judge-text2');
+        if (!el) return;
+        el.textContent = text; el.style.color = color;
+        el.style.animation = 'none'; void el.offsetWidth;
+        el.style.animation = 'phJudgeAnim .9s forwards';
+      }
+
+      function spawnBubbles() {
+        const body = document.getElementById('ph-beaker-body');
+        if (!body) return;
+        for (let i = 0; i < 5; i++) {
+          const b = document.createElement('div');
+          b.className = 'ph-particle';
+          const x = 20 + Math.random() * 110;
+          b.style.cssText = `left:${x}px;bottom:18%;width:${6 + Math.random() * 6}px;height:${6 + Math.random() * 6}px;background:rgba(255,255,255,.75);animation:phParticleUp ${.4 + Math.random() * .35}s ${Math.random() * .12}s ease-out forwards;--dx:${(Math.random() - .5) * 28}px;`;
+          body.appendChild(b);
+          setTimeout(() => b.remove(), 850);
+        }
+      }
+
+      function spawnParticles() {
+        const body = document.getElementById('ph-beaker-body');
+        if (!body) return;
+        const col = phColor(gs.pH);
+        for (let i = 0; i < 10; i++) {
+          const p = document.createElement('div');
+          p.className = 'ph-particle';
+          const x = 20 + Math.random() * 110;
+          p.style.cssText = `left:${x}px;bottom:72%;background:${col};animation:phParticleUp ${.5 + Math.random() * .4}s ${Math.random() * .18}s ease-out forwards;--dx:${(Math.random() - .5) * 50}px;`;
+          body.appendChild(p);
+          setTimeout(() => p.remove(), 1000);
+        }
+      }
+
+      // ---- End / Result ----
+      function endGame() {
+        if (!gs || gs.done) return;
+        gs.done = true;
+        if (phAnimId) { cancelAnimationFrame(phAnimId); phAnimId = null; }
+        if (gs.scientistTimeoutId) clearTimeout(gs.scientistTimeoutId);
+        hideSci(true);
+        const key = 'ph_best_' + gs.diff;
+        const prev = parseInt(localStorage.getItem(key) || '0');
+        if (gs.score > prev) localStorage.setItem(key, Math.floor(gs.score));
+        showPhResult();
+      }
+
+      function showPhResult() {
+        const g = gs;
+        const survSec = Math.floor(g.elapsed / 1000);
+        const total = g.totalJudges || 1;
+        const pRate = g.judgeCounts.PERFECT / total;
+        const rank = pRate >= .7 ? 'S' : pRate >= .5 ? 'A' : pRate >= .3 ? 'B' : pRate >= .1 ? 'C' : 'D';
+        document.getElementById('ph-result-rank').textContent = rank;
+        document.getElementById('ph-r-score').textContent = Math.floor(g.score).toLocaleString();
+        document.getElementById('ph-r-time').textContent = survSec + '초';
+        document.getElementById('ph-r-final-ph').textContent = g.pH.toFixed(1);
+        document.getElementById('ph-r-perfect').textContent = g.judgeCounts.PERFECT;
+        document.getElementById('ph-r-good').textContent = g.judgeCounts.GOOD;
+        document.getElementById('ph-r-ok').textContent = g.judgeCounts.OK;
+        const key = 'ph_best_' + g.diff;
+        const prev = parseInt(localStorage.getItem(key) || '0');
+        document.getElementById('ph-new-record').style.display = g.score >= prev ? 'block' : 'none';
+        goScene('ph-result');
+      }
+
+      return { start, stop, restart, togglePause, tutorialDone, onKey, initSelectScreen, acceptSci, rejectSci };
+    })();
+
+    // ============================================================
+    // CELL ORGANELLE DEFENSE GAME
+    // ============================================================
+    const CELL = (() => {
+      'use strict';
+
+      // ── Substance database (t: hb=hydrophobic, hi=hydrophilic, hm=harmful) ──
+      const SUBS = [
+        { id: 'O2', f: 'O₂', n: '산소', t: 'hb' },
+        { id: 'CO2', f: 'CO₂', n: '이산화탄소', t: 'hb' },
+        { id: 'N2', f: 'N₂', n: '질소', t: 'hb' },
+        { id: 'ethanol', f: 'C₂H₅OH', n: '에탄올', t: 'hb' },
+        { id: 'steroid', f: '스테로이드', n: '스테로이드 호르몬', t: 'hb' },
+        { id: 'vitA', f: '비타민 A', n: '지용성 비타민 A', t: 'hb' },
+        { id: 'vitD', f: '비타민 D', n: '지용성 비타민 D', t: 'hb' },
+        { id: 'urea', f: 'CO(NH₂)₂', n: '요소', t: 'hb' },
+        { id: 'H2O', f: 'H₂O', n: '물', t: 'hi' },
+        { id: 'glucose', f: 'C₆H₁₂O₆', n: '포도당', t: 'hi' },
+        { id: 'Na', f: 'Na⁺', n: '나트륨 이온', t: 'hi' },
+        { id: 'K', f: 'K⁺', n: '칼륨 이온', t: 'hi' },
+        { id: 'Cl', f: 'Cl⁻', n: '염화 이온', t: 'hi' },
+        { id: 'Ca', f: 'Ca²⁺', n: '칼슘 이온', t: 'hi' },
+        { id: 'aminoacid', f: '아미노산', n: '아미노산', t: 'hi' },
+        { id: 'protein', f: '단백질', n: '단백질', t: 'hi' },
+        { id: 'ATP', f: 'ATP', n: 'ATP', t: 'hi' },
+        { id: 'vitC', f: '비타민 C', n: '수용성 비타민 C', t: 'hi' },
+        { id: 'toxin', f: 'TTX', n: '테트로도톡신', t: 'hm' },
+        { id: 'pathogen', f: '병원균 단백질', n: '병원균 유래 단백질', t: 'hm' },
+        { id: 'H2O2', f: 'H₂O₂', n: '과산화수소', t: 'hm' },
+        { id: 'Pb', f: 'Pb²⁺', n: '납 이온', t: 'hm' },
+        { id: 'Hg', f: 'Hg²⁺', n: '수은 이온', t: 'hm' },
+      ];
+
+      // ── Sniper molecule defs (st: target | safe) ──
+      const SNIPER_DEFS = [
+        { id: 'H2O2', f: 'H₂O₂', n: '과산화수소', st: 'target' },
+        { id: 'Pb', f: 'Pb²⁺', n: '납 이온', st: 'target' },
+        { id: 'Hg', f: 'Hg²⁺', n: '수은 이온', st: 'target' },
+        { id: 'toxin', f: '독소 단백질', n: '독소 단백질', st: 'target' },
+        { id: 'pathogen', f: '바이러스 항원', n: '바이러스 항원', st: 'target' },
+        { id: 'excNa', f: 'Na⁺(과잉)', n: '과잉 나트륨 이온', st: 'target' },
+        { id: 'excGlu', f: 'C₆H₁₂O₆(과잉)', n: '과잉 포도당', st: 'target' },
+        { id: 'excCa', f: 'Ca²⁺(과잉)', n: '과잉 칼슘 이온', st: 'target' },
+        { id: 'ATP', f: 'ATP', n: 'ATP', st: 'safe' },
+        { id: 'ribosome', f: '리보솜', n: '리보솜', st: 'safe' },
+        { id: 'glucose', f: 'C₆H₁₂O₆', n: '포도당', st: 'safe' },
+        { id: 'O2', f: 'O₂', n: '산소', st: 'safe' },
+        { id: 'enzyme', f: '효소 단백질', n: '효소 단백질', st: 'safe' },
+        { id: 'Knorm', f: 'K⁺(정상)', n: '칼륨 이온(정상)', st: 'safe' },
+      ];
+
+      // ── Defense scenarios ──
+      const SCEN = [
+        {
+          id: 'normal', name: '정상', icon: '✅',
+          desc: '✅ 정상 상태 — 소수성 분자만 통과, 나머지 차단',
+          hint: 'O₂, CO₂, 에탄올, 스테로이드 등 소수성 → 허용',
+          bg: 'rgba(232,245,233,.85)', bc: '#1b5e20', bb: '#a5d6a7',
+          ea: [], eb: []
+        },
+        {
+          id: 'o2_def', name: '산소 부족', icon: '⚠️',
+          desc: '⚠️ 산소 부족 — O₂ 반드시 수용, CO₂ 방출 허용',
+          hint: 'O₂는 이미 소수성이라 기본 허용. 유해물질만 막으세요!',
+          bg: 'rgba(255,243,224,.88)', bc: '#e65100', bb: '#ffcc80',
+          ea: ['O2', 'CO2'], eb: [], hl: ['O2']
+        },
+        {
+          id: 'glu_def', name: '포도당 부족', icon: '⚠️',
+          desc: '⚠️ 포도당 부족 — 수용체 활성화, 포도당 수용 필요',
+          hint: '포도당(C₆H₁₂O₆)만 예외 허용! 다른 친수성은 차단.',
+          bg: 'rgba(255,253,231,.88)', bc: '#f57f17', bb: '#ffe082',
+          ea: ['glucose'], eb: [], hl: ['glucose']
+        },
+        {
+          id: 'dehydrate', name: '탈수 상태', icon: '💧',
+          desc: '💧 탈수 상태 — 아쿠아포린 활성화, H₂O 수용 필요',
+          hint: '물(H₂O)을 반드시 허용하세요! 아쿠아포린 채널 가동.',
+          bg: 'rgba(225,245,254,.9)', bc: '#0277bd', bb: '#81d4fa',
+          ea: ['H2O'], eb: [], hl: ['H2O']
+        },
+        {
+          id: 'ion_Na', name: 'Na⁺ 불균형', icon: '⚡',
+          desc: '⚡ 이온 불균형 — Na⁺ 채널 활성화, Na⁺ 수용 필요',
+          hint: '나트륨 이온(Na⁺)만 예외 허용! K⁺는 여전히 차단.',
+          bg: 'rgba(243,229,245,.88)', bc: '#6a1b9a', bb: '#ce93d8',
+          ea: ['Na'], eb: [], hl: ['Na']
+        },
+        {
+          id: 'ion_K', name: 'K⁺ 불균형', icon: '⚡',
+          desc: '⚡ 이온 불균형 — K⁺ 채널 활성화, K⁺ 수용 필요',
+          hint: '칼륨 이온(K⁺)만 예외 허용! Na⁺는 여전히 차단.',
+          bg: 'rgba(243,229,245,.88)', bc: '#6a1b9a', bb: '#ce93d8',
+          ea: ['K'], eb: [], hl: ['K']
+        },
+        {
+          id: 'infect', name: '감염 상태', icon: '🦠',
+          desc: '🦠 감염 상태 — 외부 단백질 강화 차단!',
+          hint: '단백질·아미노산도 모두 차단! 병원균 침투 경보.',
+          bg: 'rgba(255,235,238,.9)', bc: '#b71c1c', bb: '#ef9a9a',
+          ea: [], eb: ['protein', 'aminoacid'], hl: []
+        },
+      ];
+
+      // ── Sniper scenarios ──
+      const SNIPER_SCEN = [
+        { id: 'ros', desc: '⚡ 활성산소 과잉 — H₂O₂만 제거', targets: ['H2O2'] },
+        { id: 'heavy', desc: '☠️ 중금속 오염 — Pb²⁺, Hg²⁺ 제거', targets: ['Pb', 'Hg'] },
+        { id: 'virus', desc: '🦠 바이러스 감염 — 항원·독소 제거', targets: ['pathogen', 'toxin'] },
+        { id: 'sugar', desc: '🍬 혈당 과잉 — 과잉 포도당 제거', targets: ['excGlu'] },
+        { id: 'sodium', desc: '⚡ 나트륨 과잉 — 과잉 Na⁺ 제거', targets: ['excNa'] },
+        { id: 'calcium', desc: '💊 칼슘 독성 — 과잉 Ca²⁺ 제거', targets: ['excCa'] },
+      ];
+
+      // ── State ──
+      let cMode = null;
+      let cGs = null;
+      let cAnimId = null;
+      let scopeX = 0, scopeY = 0;
+      let scopeCv = null, scopeCtx2d = null;
+      let pendingMode = null;
+
+      const $$ = id => document.getElementById(id);
+
+      // ── Helpers ──
+      function getSub(id) { return SUBS.find(s => s.id === id); }
+      function getSnDef(id) { return SNIPER_DEFS.find(d => d.id === id); }
+
+      function isAllowed(subId, sc) {
+        const sub = getSub(subId);
+        if (!sub) return false;
+        if (sub.t === 'hm') return false;
+        if (sc.eb.includes(subId)) return false;
+        if (sc.ea.includes(subId)) return true;
+        return sub.t === 'hb';
+      }
+
+      // ═══════════════════════════════════════════════
+      // DEFENSE MODE
+      // ═══════════════════════════════════════════════
+      function startDefense() {
+        cMode = 'defense';
+        if (cAnimId) { cancelAnimationFrame(cAnimId); cAnimId = null; }
+        cGs = {
+          hp: 100, score: 0, elapsed: 0, lastFrame: null, done: false, paused: false,
+          mols: [], molId: 0, spawnTimer: 0, spawnMs: 2800,
+          scenIdx: 0, scenTimer: 0, SCEN_DUR: 45000,
+          correct: 0, wrong: 0, wrongMols: {},
+          extraH: 0, judgeY: 0,
+        };
+        cGs.scen = SCEN[0];
+        goScene('cell-defense');
+        cGs.done = false; // reset after goScene may call CELL.stop()
+        clearCellMols();
+        refreshDefHud();
+        updateScenPanel(false);
+        cAnimId = requestAnimationFrame(defLoop);
+      }
+
+      function defLoop(ts) {
+        if (!cGs || cGs.done) return;
+        if (!cGs.lastFrame) cGs.lastFrame = ts;
+        const dt = Math.min(ts - cGs.lastFrame, 60);
+        cGs.lastFrame = ts;
+
+        // Init layout on first frame
+        if (cGs.extraH === 0) {
+          const el = $$('cell-extra-space');
+          cGs.extraH = el ? el.offsetHeight : 300;
+          cGs.judgeY = cGs.extraH - 90;
+          buildMembraneSVG();
+        }
+
+        if (!cGs.paused) {
+          cGs.elapsed += dt;
+          cGs.scenTimer += dt;
+          cGs.spawnTimer += dt;
+
+          // Scenario rotation
+          if (cGs.scenTimer >= cGs.SCEN_DUR) {
+            cGs.scenTimer = 0;
+            cGs.scenIdx = (cGs.scenIdx + 1) % SCEN.length;
+            cGs.scen = SCEN[cGs.scenIdx];
+            updateScenPanel(true);
+          }
+
+          // Spawn
+          const activeMols = cGs.mols.filter(m => !m.judged).length;
+          if (cGs.spawnTimer >= cGs.spawnMs && activeMols < 3) {
+            cGs.spawnTimer = 0;
+            cGs.spawnMs = 2400 + Math.random() * 1600;
+            spawnDefMol();
+          }
+
+          // Move & auto-pass
+          cGs.mols.forEach(mol => {
+            if (mol.judged) return;
+            mol.y += mol.speed * dt / 1000;
+            mol.inZone = mol.y >= cGs.judgeY && mol.y < cGs.judgeY + 55;
+            if (mol.y > cGs.judgeY + 55) autoPassMol(mol);
+            updateDefMolEl(mol);
+          });
+
+          // Cleanup removed
+          cGs.mols = cGs.mols.filter(m => {
+            if (m.remove) { const e = $$('cmol-' + m.id); if (e) e.remove(); return false; }
+            return true;
+          });
+
+          const t = $$('cell-def-time'); if (t) t.textContent = Math.floor(cGs.elapsed / 1000) + 's';
+        }
+        cAnimId = requestAnimationFrame(defLoop);
+      }
+
+      function spawnDefMol() {
+        const sc = cGs.scen;
+        let pool = [...SUBS];
+        // Double-weight scenario-specific substances
+        (sc.ea || []).forEach(id => { const s = getSub(id); if (s) pool.push(s, s); });
+        // Occasionally force harmful
+        if (Math.random() < 0.2) pool = SUBS.filter(s => s.t === 'hm');
+
+        const sub = pool[Math.floor(Math.random() * pool.length)];
+        const xOff = (Math.round(Math.random() * 2) - 1) * 68; // -68, 0, +68
+        const mol = {
+          id: cGs.molId++, sub,
+          y: -85, xOff,
+          speed: 56 + Math.random() * 30,
+          judged: false, inZone: false, remove: false,
+          shouldAllow: isAllowed(sub.id, sc),
+        };
+        cGs.mols.push(mol);
+
+        const el = document.createElement('div');
+        el.className = 'cell-mol';
+        el.id = 'cmol-' + mol.id;
+        el.style.cssText = `top:${mol.y}px;left:calc(50% + ${mol.xOff}px);`;
+        el.innerHTML = `<div class="cell-mol-formula">${sub.f}</div><div class="cell-mol-name">${sub.n}</div>`;
+        const parent = $$('cell-def-play');
+        if (parent) parent.appendChild(el);
+      }
+
+      function updateDefMolEl(mol) {
+        const el = $$('cmol-' + mol.id);
+        if (!el) return;
+        el.style.top = mol.y + 'px';
+        el.classList.toggle('in-zone', mol.inZone);
+      }
+
+      function autoPassMol(mol) {
+        if (mol.judged) return;
+        mol.judged = true;
+        if (!mol.shouldAllow) {
+          showDefJudge('⛔ 미처리!', '#c62828');
+          defHpDelta(mol.sub.t === 'hm' ? -20 : -10);
+          cGs.wrong++;
+          cGs.wrongMols[mol.sub.id] = (cGs.wrongMols[mol.sub.id] || 0) + 1;
+        }
+        mol.remove = true;
+      }
+
+      function judgeDefense(action) {
+        if (!cGs || cGs.paused || cGs.done) return;
+        const mol = cGs.mols.find(m => !m.judged && m.inZone);
+        if (!mol) return;
+        mol.judged = true;
+
+        const correct = (action === 'allow') === mol.shouldAllow;
+        if (correct) {
+          cGs.score += mol.sub.t === 'hm' ? 150 : 100;
+          cGs.correct++;
+          showDefJudge(action === 'allow' ? '✅ 허용!' : '🛡️ 차단!', '#2e7d32');
+        } else {
+          const penalty = (action === 'allow' && mol.sub.t === 'hm') ? -20 : -10;
+          defHpDelta(penalty);
+          cGs.wrong++;
+          cGs.wrongMols[mol.sub.id] = (cGs.wrongMols[mol.sub.id] || 0) + 1;
+          const msg = action === 'allow'
+            ? (mol.sub.t === 'hm' ? '☠️ 유해물질 통과!' : '⚠️ 허용 오류')
+            : '❌ 차단 오류';
+          showDefJudge(msg, '#c62828');
+        }
+
+        const el = $$('cmol-' + mol.id);
+        if (el) {
+          el.classList.remove('in-zone');
+          el.classList.add(action === 'allow' ? 'judged-allow' : 'judged-block');
+        }
+        setTimeout(() => { mol.remove = true; }, 500);
+        refreshDefHud();
+      }
+
+      function showDefJudge(text, color) {
+        const el = $$('cell-def-judge');
+        if (!el) return;
+        el.textContent = text; el.style.color = color;
+        el.style.animation = 'none'; void el.offsetWidth;
+        el.style.animation = 'cellJudgeAnim .75s ease forwards';
+      }
+
+      function updateScenPanel(animate) {
+        const sc = cGs.scen;
+        const badge = $$('cell-scenario-badge');
+        const desc = $$('cell-scenario-desc');
+        const hint = $$('cell-scenario-hint');
+        const panel = $$('cell-scenario-panel');
+        if (badge) { badge.textContent = sc.icon + ' ' + sc.name; badge.style.color = sc.bc; badge.style.borderColor = sc.bb; }
+        if (desc) desc.textContent = sc.desc;
+        if (hint) hint.textContent = sc.hint || '';
+        if (panel) panel.style.background = sc.bg;
+        if (animate && panel) {
+          panel.style.outline = '3px solid ' + (sc.bb || '#ccc');
+          setTimeout(() => { if (panel) panel.style.outline = ''; }, 700);
+        }
+      }
+
+      function defHpDelta(d) {
+        cGs.hp = Math.max(0, Math.min(100, cGs.hp + d));
+        refreshDefHud();
+        if (cGs.hp <= 0) endCellGame();
+      }
+
+      function refreshDefHud() {
+        if (!cGs) return;
+        const hp = cGs.hp;
+        const bar = $$('cell-def-hp-bar');
+        if (bar) { bar.style.width = hp + '%'; bar.style.background = hp > 60 ? '#2e7d32' : hp > 30 ? '#f9a825' : '#c62828'; }
+        const hpv = $$('cell-def-hp-val'); if (hpv) hpv.textContent = Math.ceil(hp);
+        const sc = $$('cell-def-score'); if (sc) sc.textContent = Math.floor(cGs.score).toLocaleString();
+      }
+
+      function clearCellMols() { document.querySelectorAll('.cell-mol').forEach(e => e.remove()); }
+
+      function toggleDefPause() {
+        if (!cGs || cGs.done) return;
+        cGs.paused = !cGs.paused;
+        const ov = $$('cell-def-pause-ov');
+        if (ov) ov.style.display = cGs.paused ? 'flex' : 'none';
+        if (!cGs.paused) { cGs.lastFrame = null; cAnimId = requestAnimationFrame(defLoop); }
+      }
+
+      // ═══════════════════════════════════════════════
+      // SNIPER MODE
+      // ═══════════════════════════════════════════════
+      function startSniper() {
+        cMode = 'sniper';
+        if (cAnimId) { cancelAnimationFrame(cAnimId); cAnimId = null; }
+        cGs = {
+          hp: 100, score: 0, elapsed: 0, lastFrame: null, done: false, paused: false,
+          mols: [], molId: 0, spawnTimer: 0, spawnMs: 2000,
+          scenIdx: 0, scenTimer: 0, SCEN_DUR: 40000,
+          correct: 0, wrong: 0, removes: 0, wrongMols: {},
+          W: 1280, H: 720,
+        };
+        cGs.scen = SNIPER_SCEN[0];
+        goScene('cell-sniper');
+        cGs.done = false;
+        clearSniperMols();
+        refreshSniperHud();
+        cAnimId = requestAnimationFrame(ts => {
+          const el = $$('scene-cell-sniper');
+          scopeCv = $$('cell-scope-canvas');
+          if (el && scopeCv) {
+            cGs.W = el.offsetWidth || 1280;
+            cGs.H = el.offsetHeight || 720;
+            scopeCv.width = cGs.W;
+            scopeCv.height = cGs.H;
+            scopeCtx2d = scopeCv.getContext('2d');
+          }
+          updateSniperScen(false);
+          sniperLoop(ts);
+        });
+      }
+
+      function sniperLoop(ts) {
+        if (!cGs || cGs.done) return;
+        if (!cGs.lastFrame) cGs.lastFrame = ts;
+        const dt = Math.min(ts - cGs.lastFrame, 60);
+        cGs.lastFrame = ts;
+
+        if (!cGs.paused) {
+          cGs.elapsed += dt;
+          cGs.scenTimer += dt;
+          cGs.spawnTimer += dt;
+
+          // Scenario rotation
+          if (cGs.scenTimer >= cGs.SCEN_DUR) {
+            cGs.scenTimer = 0;
+            cGs.scenIdx = (cGs.scenIdx + 1) % SNIPER_SCEN.length;
+            cGs.scen = SNIPER_SCEN[cGs.scenIdx];
+            updateSniperScen(true);
+          }
+
+          // Spawn
+          if (cGs.spawnTimer >= cGs.spawnMs && cGs.mols.length < 11) {
+            cGs.spawnTimer = 0;
+            cGs.spawnMs = 1800 + Math.random() * 1200;
+            spawnSniperMol();
+          }
+
+          // Move & bounce
+          const { W, H } = cGs;
+          cGs.mols.forEach(mol => {
+            if (mol.dead) return;
+            mol.x += mol.vx * dt / 1000;
+            mol.y += mol.vy * dt / 1000;
+            if (mol.x < 70) { mol.x = 70; mol.vx = Math.abs(mol.vx); }
+            if (mol.x > W - 70) { mol.x = W - 70; mol.vx = -Math.abs(mol.vx); }
+            if (mol.y < 58) { mol.y = 58; mol.vy = Math.abs(mol.vy); }
+            if (mol.y > H - 55) { mol.y = H - 55; mol.vy = -Math.abs(mol.vy); }
+            updateSniperMolEl(mol);
+          });
+
+          cGs.mols = cGs.mols.filter(m => {
+            if (m.remove) { const e = $$('smol-' + m.id); if (e) e.remove(); return false; }
+            return true;
+          });
+
+          const te = $$('cell-sn-time'); if (te) te.textContent = Math.floor(cGs.elapsed / 1000) + 's';
+        }
+        drawScope();
+        cAnimId = requestAnimationFrame(sniperLoop);
+      }
+
+      function spawnSniperMol() {
+        const targets = cGs.scen.targets;
+        const { W, H } = cGs;
+        let def;
+        const r = Math.random();
+        if (r < 0.38) { def = getSnDef(targets[Math.floor(Math.random() * targets.length)]); }
+        else if (r < 0.65) { const safe = SNIPER_DEFS.filter(d => d.st === 'safe'); def = safe[Math.floor(Math.random() * safe.length)]; }
+        else { def = SNIPER_DEFS[Math.floor(Math.random() * SNIPER_DEFS.length)]; }
+        if (!def) return;
+
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 42 + Math.random() * 55;
+        const mol = {
+          id: cGs.molId++, def,
+          x: 100 + Math.random() * (W - 200),
+          y: 70 + Math.random() * (H - 130),
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          dead: false, remove: false,
+          isTarget: targets.includes(def.id),
+        };
+        cGs.mols.push(mol);
+
+        const el = document.createElement('div');
+        const cls = mol.isTarget ? 'sn-target' : (def.st === 'safe' ? 'sn-safe' : 'sn-neutral');
+        el.className = 'cell-sniper-mol ' + cls;
+        el.id = 'smol-' + mol.id;
+        el.innerHTML = `<span>${def.f}</span><br><span style="font-size:.62rem;opacity:.75;">${def.n}</span>`;
+        el.style.left = mol.x + 'px';
+        el.style.top = mol.y + 'px';
+        const scene = $$('scene-cell-sniper');
+        if (scene) scene.appendChild(el);
+      }
+
+      function updateSniperMolEl(mol) {
+        const el = $$('smol-' + mol.id);
+        if (!el) return;
+        el.style.left = (mol.x - el.offsetWidth / 2) + 'px';
+        el.style.top = (mol.y - el.offsetHeight / 2) + 'px';
+      }
+
+      function drawScope() {
+        if (!scopeCtx2d || !scopeCv || !cGs) return;
+        const ctx = scopeCtx2d;
+        const W = scopeCv.width, H = scopeCv.height;
+        ctx.clearRect(0, 0, W, H);
+        if (cGs.paused) return;
+
+        const cx = scopeX, cy = scopeY, R = 52;
+
+        // Find aimed molecule
+        let aimed = null, minD = Infinity;
+        cGs.mols.forEach(mol => {
+          if (mol.dead || mol.remove) return;
+          const dx = mol.x - cx, dy = mol.y - cy;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < minD) { minD = d; aimed = mol; }
+        });
+        const hasAim = aimed && minD < R + 35;
+
+        // Subtle dark overlay
+        ctx.fillStyle = 'rgba(0,8,18,0.10)';
+        ctx.fillRect(0, 0, W, H);
+
+        // Outer ring colour based on aim verdict
+        const ringCol = hasAim
+          ? (aimed.isTarget ? 'rgba(255,110,110,.92)' : 'rgba(90,255,140,.85)')
+          : 'rgba(255,255,255,.8)';
+        ctx.strokeStyle = ringCol;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+
+        // Inner ring
+        ctx.strokeStyle = 'rgba(255,255,255,.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(cx, cy, R * 0.28, 0, Math.PI * 2); ctx.stroke();
+
+        // Crosshairs
+        ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1.5;
+        [[cx - R - 18, cy, cx - R * .35, cy], [cx + R * .35, cy, cx + R + 18, cy],
+        [cx, cy - R - 18, cx, cy - R * .35], [cx, cy + R * .35, cx, cy + R + 18]].forEach(([x1, y1, x2, y2]) => {
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        });
+
+        // Centre dot
+        ctx.fillStyle = 'rgba(255,255,255,.55)';
+        ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI * 2); ctx.fill();
+
+        // Highlight / label for aimed molecule
+        document.querySelectorAll('.cell-sniper-mol.sn-aimed').forEach(e => e.classList.remove('sn-aimed'));
+        if (hasAim) {
+          const ae = $$('smol-' + aimed.id);
+          if (ae) ae.classList.add('sn-aimed');
+          const lc = aimed.isTarget ? '#ff7777' : '#77ee99';
+          const verdict = aimed.isTarget ? '⚠️ 유해 — 제거 가능' : '🔒 필수 — 제거 불가';
+          ctx.textAlign = 'center';
+          ctx.font = 'bold 12px "Segoe UI",sans-serif';
+          ctx.fillStyle = lc;
+          const ly = cy + R + 20;
+          ctx.fillText(aimed.def.f + ' — ' + aimed.def.n, cx, ly);
+          ctx.font = '10px "Segoe UI",sans-serif';
+          ctx.fillStyle = 'rgba(255,255,255,.7)';
+          ctx.fillText(verdict, cx, ly + 15);
+        }
+      }
+
+      function shoot(e) {
+        if (!cGs || cGs.paused || cGs.done) return;
+        const sceneEl = $$('scene-cell-sniper');
+        if (!sceneEl) return;
+        const rect = sceneEl.getBoundingClientRect();
+        const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        const R = 58;
+        let hit = null, minD = Infinity;
+        cGs.mols.forEach(mol => {
+          if (mol.dead || mol.remove) return;
+          const dx = mol.x - mx, dy = mol.y - my;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < R && d < minD) { minD = d; hit = mol; }
+        });
+        if (!hit) return;
+
+        if (hit.isTarget) {
+          cGs.score += 150; cGs.correct++; cGs.removes++;
+          hit.dead = true;
+          const el = $$('smol-' + hit.id);
+          if (el) { el.style.animation = 'cellSniperHit .3s ease forwards'; setTimeout(() => { hit.remove = true; }, 320); }
+          refreshSniperHud();
+        } else {
+          cGs.score = Math.max(0, cGs.score - 50);
+          cGs.wrong++;
+          cGs.wrongMols[hit.def.id] = (cGs.wrongMols[hit.def.id] || 0) + 1;
+          sniperHpDelta(-15);
+          const el = $$('scene-cell-sniper');
+          if (el) { el.classList.remove('cell-shake'); void el.offsetWidth; el.classList.add('cell-shake'); setTimeout(() => el.classList.remove('cell-shake'), 450); }
+        }
+      }
+
+      function sniperHpDelta(d) {
+        cGs.hp = Math.max(0, Math.min(100, cGs.hp + d));
+        refreshSniperHud();
+        if (cGs.hp <= 0) endCellGame();
+      }
+
+      function refreshSniperHud() {
+        if (!cGs) return;
+        const hp = cGs.hp;
+        const bar = $$('cell-sn-hp-bar');
+        if (bar) { bar.style.width = hp + '%'; bar.style.background = hp > 60 ? '#66bb6a' : hp > 30 ? '#ffb74d' : '#ef5350'; }
+        const hpv = $$('cell-sn-hp-val'); if (hpv) hpv.textContent = Math.ceil(hp);
+        const sc = $$('cell-sn-score'); if (sc) sc.textContent = Math.floor(cGs.score).toLocaleString();
+      }
+
+      function updateSniperScen(animate) {
+        const el = $$('cell-sn-scenario');
+        if (!el) return;
+        if (animate) { el.style.opacity = '0'; setTimeout(() => { if (el) { el.textContent = cGs.scen.desc; el.style.opacity = '1'; } }, 250); }
+        else el.textContent = cGs.scen.desc;
+      }
+
+      function clearSniperMols() { document.querySelectorAll('.cell-sniper-mol').forEach(e => e.remove()); }
+
+      function toggleSniperPause() {
+        if (!cGs || cGs.done) return;
+        cGs.paused = !cGs.paused;
+        const ov = $$('cell-sniper-pause');
+        if (ov) ov.style.display = cGs.paused ? 'flex' : 'none';
+        if (!cGs.paused) { cGs.lastFrame = null; cAnimId = requestAnimationFrame(sniperLoop); }
+      }
+
+      // ═══════════════════════════════════════════════
+      // SHARED
+      // ═══════════════════════════════════════════════
+      function endCellGame() {
+        if (!cGs || cGs.done) return;
+        cGs.done = true;
+        if (cAnimId) { cancelAnimationFrame(cAnimId); cAnimId = null; }
+        showCellResult();
+      }
+
+      function showCellResult() {
+        const g = cGs;
+        const survSec = Math.floor(g.elapsed / 1000);
+        const total = g.correct + g.wrong || 1;
+        const rate = g.correct / total;
+        const rank = rate >= .88 ? 'S' : rate >= .72 ? 'A' : rate >= .55 ? 'B' : rate >= .35 ? 'C' : 'D';
+
+        $$('cell-res-mode').textContent = cMode === 'defense' ? '🛡️ 방어 모드 결과' : '🎯 스나이퍼 모드 결과';
+        $$('cell-res-rank').textContent = rank;
+        $$('cell-r-score').textContent = Math.floor(g.score).toLocaleString();
+        $$('cell-r-time').textContent = survSec + '초';
+        $$('cell-r-correct').textContent = g.correct;
+        $$('cell-r-wrong').textContent = g.wrong;
+        const remRow = $$('cell-r-removes-row');
+        if (remRow) remRow.style.display = cMode === 'sniper' ? 'flex' : 'none';
+        if (cMode === 'sniper') $$('cell-r-removes').textContent = g.removes || 0;
+
+        const worstEl = $$('cell-res-worst');
+        const entries = Object.entries(g.wrongMols);
+        if (entries.length && worstEl) {
+          entries.sort((a, b) => b[1] - a[1]);
+          const [wid, cnt] = entries[0];
+          const sub = getSub(wid) || getSnDef(wid) || { n: wid };
+          worstEl.style.display = 'block';
+          worstEl.textContent = `⚠️ "${sub.n}"를 ${cnt}번 잘못 판단했어요!`;
+        } else if (worstEl) {
+          worstEl.style.display = 'none';
+        }
+        goScene('cell-result');
+      }
+
+      function stop() {
+        if (cAnimId) { cancelAnimationFrame(cAnimId); cAnimId = null; }
+        if (cGs) cGs.done = true;
+        clearCellMols();
+        clearSniperMols();
+        document.querySelectorAll('.cell-sniper-mol.sn-aimed').forEach(e => e.classList.remove('sn-aimed'));
+        if (scopeCtx2d && scopeCv) scopeCtx2d.clearRect(0, 0, scopeCv.width, scopeCv.height);
+      }
+
+      function restart() {
+        stop();
+        if (cMode === 'defense') startDefense();
+        else if (cMode === 'sniper') startSniper();
+      }
+
+      function changeMode() { stop(); goScene('cell-select'); }
+
+      function onKey(e) {
+        if (!cGs || cGs.paused || cGs.done) return;
+        if (e.key === 'Escape') { toggleDefPause(); return; }
+        if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') judgeDefense('allow');
+        if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') judgeDefense('block');
+      }
+
+      function onMouseMove(e) {
+        if (!cGs || cMode !== 'sniper') return;
+        const el = $$('scene-cell-sniper');
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        scopeX = e.clientX - r.left;
+        scopeY = e.clientY - r.top;
+      }
+
+      function onMouseClick(e) { if (cMode === 'sniper') shoot(e); }
+
+      function initSelectScreen() { /* no-op */ }
+
+      // ---- Guide screen ----
+      function showGuide(mode) {
+        pendingMode = mode;
+        if (localStorage.getItem('cell_guide_seen')) { guideUnderstand(); return; }
+        const sec = document.getElementById('cell-guide-sniper-sec');
+        if (sec) sec.style.display = mode === 'sniper' ? 'block' : 'none';
+        goScene('cell-guide');
+      }
+
+      function guideUnderstand() {
+        localStorage.setItem('cell_guide_seen', '1');
+        if (pendingMode === 'defense') startDefense();
+        else if (pendingMode === 'sniper') startSniper();
+      }
+
+      function guideSkipBtn() {
+        localStorage.setItem('cell_guide_seen', '1');
+        if (pendingMode === 'defense') startDefense();
+        else if (pendingMode === 'sniper') startSniper();
+      }
+
+      // ---- Phospholipid bilayer SVG ----
+      function buildMembraneSVG() {
+        const bar = document.getElementById('cell-membrane-bar');
+        if (!bar) return;
+        const W = Math.max(bar.offsetWidth, 800);
+        const H = 80;
+        const spacing = 16;
+        const count = Math.ceil(W / spacing) + 2;
+        let upper = '', lower = '';
+        for (let i = 0; i < count; i++) {
+          const x = i * spacing;
+          upper += `<circle cx="${x+8}" cy="9" r="6.5" fill="#1565c0" opacity=".8" stroke="#42a5f5" stroke-width="1"/>` +
+            `<path d="M${x+5},16 C${x+2},24 ${x+6},30 ${x+4},38" fill="none" stroke="#fff9c4" stroke-width="2.2" stroke-linecap="round"/>` +
+            `<path d="M${x+11},16 C${x+14},24 ${x+10},30 ${x+12},38" fill="none" stroke="#fff9c4" stroke-width="2.2" stroke-linecap="round"/>`;
+          lower += `<circle cx="${x+8}" cy="71" r="6.5" fill="#1565c0" opacity=".8" stroke="#42a5f5" stroke-width="1"/>` +
+            `<path d="M${x+5},64 C${x+2},56 ${x+6},50 ${x+4},42" fill="none" stroke="#fff9c4" stroke-width="2.2" stroke-linecap="round"/>` +
+            `<path d="M${x+11},64 C${x+14},56 ${x+10},50 ${x+12},42" fill="none" stroke="#fff9c4" stroke-width="2.2" stroke-linecap="round"/>`;
+        }
+        const cxList = [W*0.12, W*0.30, W*0.50, W*0.68, W*0.86].map(Math.round);
+        const cLabels = ['이온 채널','수용체 단백질','아쿠아포린','펌프 단백질','이온 채널'];
+        const channels = cxList.map((cx, i) =>
+          `<g transform="translate(${cx-12},0)" class="membrane-channel">` +
+          `<path d="M2,2 L7,36 L2,78 M22,2 L17,36 L22,78" stroke="rgba(170,60,220,.8)" stroke-width="2.8" fill="none" stroke-linecap="round"/>` +
+          `<rect x="5" y="30" width="14" height="20" rx="5" fill="rgba(156,39,176,.5)" stroke="rgba(206,147,216,.8)" stroke-width="1.5"/>` +
+          `<title>${cLabels[i]}</title></g>`
+        ).join('');
+        bar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="display:block">` +
+          `<rect x="0" y="37" width="${W}" height="6" fill="rgba(255,249,196,.15)"/>` +
+          `<g class="mem-flow-r">${upper}</g>` +
+          `<g class="mem-flow-l">${lower}</g>` +
+          channels +
+          `<text x="${W/2}" y="44" text-anchor="middle" fill="rgba(255,255,255,.52)" font-size="11" font-weight="700" font-family="sans-serif" letter-spacing="1.5">◈ 인지질 이중층 세포막 ◈</text>` +
+          `</svg>`;
+      }
+
+      return { startDefense, startSniper, stop, restart, changeMode, toggleDefPause, toggleSniperPause, onKey, onMouseMove, onMouseClick, initSelectScreen, showGuide, guideUnderstand, guideSkipBtn };
+    })();
+
+    // Mouse events for sniper scope
+    document.addEventListener('mousemove', e => { if (currentScene === 'cell-sniper') CELL.onMouseMove(e); });
+    document.addEventListener('click', e => { if (currentScene === 'cell-sniper') CELL.onMouseClick(e); });
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    initMainMenu();
+    applyTheme();
+  </script>
+</body>
+
+</html>
